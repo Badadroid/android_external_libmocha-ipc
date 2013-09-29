@@ -126,6 +126,10 @@ void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 				}
 			}
 		}
+		else if(simHeader->subType == 0)
+		{
+			/* Discard the packet */
+		}
 		else
 		{
 			sim_send_oem_req(sim_packet.simBuf, simHeader->bufLen); //bounceback packet
