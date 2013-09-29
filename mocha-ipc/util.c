@@ -33,7 +33,7 @@
 #include <radio.h>
 #include "ipc_private.h"
 
-void imei_bcd2ascii(char* out, const char* in)
+void imei_bcd2ascii(char* out, const uint8_t* in)
 {
 	char tmp[20];
 	bcd2ascii(tmp, in + 1, 8);
@@ -41,7 +41,7 @@ void imei_bcd2ascii(char* out, const char* in)
 	strcpy(out, tmp + 1);
 }
 
-void imsi_bcd2ascii(char* out, const char* in, int len)
+void imsi_bcd2ascii(char* out, const uint8_t* in, int len)
 {
 	char tmp[20];
 	bcd2ascii(tmp, in + 1, len - 1);
@@ -49,7 +49,7 @@ void imsi_bcd2ascii(char* out, const char* in, int len)
 	strcpy(out, tmp + 1);
 }
 
-char bcddigit2ascii(char in)
+char bcddigit2ascii(uint8_t in)
 {
 	if(in < 0xA)
 		return in + 0x30;
@@ -73,7 +73,7 @@ char bcddigit2ascii(char in)
 	}
 }
 
-void bcd2ascii(char* out, const char* in, int size)
+void bcd2ascii(char* out, const uint8_t* in, int size)
 {
 	int i;
 	int outi = 0;
