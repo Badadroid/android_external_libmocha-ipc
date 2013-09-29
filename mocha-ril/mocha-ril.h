@@ -284,6 +284,10 @@ void ril_request_dtmf_start(RIL_Token t, void *data, int length);
 void ril_request_dtmf_stop(RIL_Token t);
 void ril_request_switch_waiting_or_holding_and_active(RIL_Token t);
 
+/* GPRS */
+void ril_request_setup_data_call(RIL_Token t, void *data, int length);
+void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
+
 /* NETWORK */
 int ipc2ril_net_mode(uint32_t mode);
 uint32_t ril2ipc_net_mode(int mode);

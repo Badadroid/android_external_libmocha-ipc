@@ -37,6 +37,7 @@ int gsm72ascii(unsigned char *data, char **data_dec, int length);
 int ascii2gsm7(char *data, unsigned char **data_enc, int length);
 void hex_dump(void *data, int size);
 int utf8_write(char *utf8, int offset, int v);
+int tun_alloc(char *dev, int flags);
 
 typedef enum {
 	SMS_CODING_SCHEME_UNKNOWN = 0,

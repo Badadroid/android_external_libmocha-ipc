@@ -123,6 +123,7 @@ mocha-ril_files := \
 	mocha-ril/sms.c \
 	mocha-ril/ss.c \
 	mocha-ril/snd.c \
+	mocha-ril/gprs.c \
 	mocha-ril/util.c
 
 LOCAL_SHARED_LIBRARIES := \

@@ -430,17 +430,16 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 			break;
 		case RIL_REQUEST_DTMF:
 			ril_request_dtmf(t, data, datalen);
-                       break;
+			break;
 		case RIL_REQUEST_DTMF_START:
 			ril_request_dtmf_start(t, data, datalen);
-                       break;
+			break;
 		case RIL_REQUEST_DTMF_STOP:
 			ril_request_dtmf_stop(t);
-                       break;
-                case RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE:
-                        ril_request_switch_waiting_or_holding_and_active(t);
-                       break;
-#if 0           
+			break;
+		case RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE:
+			ril_request_switch_waiting_or_holding_and_active(t);
+			break;
 		/* GPRS */
 		case RIL_REQUEST_SETUP_DATA_CALL:
 			ril_request_setup_data_call(t, data, datalen);
@@ -448,7 +447,7 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_DEACTIVATE_DATA_CALL:
 			ril_request_deactivate_data_call(t, data, datalen);
 			break;
-#endif		/* SND */
+		/* SND */
 		case RIL_REQUEST_SET_MUTE:
 			ril_request_set_mute(t, data, datalen);
 			break;

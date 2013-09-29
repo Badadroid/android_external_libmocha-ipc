@@ -109,11 +109,11 @@ void proto_send_packet(struct protoPacket* protoReq)
 {
 	struct modem_io request;
 	
-	uint32_t bufLen = protoReq->bufLen + sizeof(struct protoPacketHeader);
+	uint32_t bufLen = protoReq->header.len + sizeof(struct protoPacketHeader);
 	uint8_t* fifobuf = malloc(bufLen);
 	memcpy(fifobuf, protoReq, sizeof(struct protoPacketHeader));
-	if(protoReq->bufLen)
-		memcpy(fifobuf + sizeof(struct protoPacketHeader), protoReq->buf, protoReq->bufLen);
+	if(protoReq->header.len)
+		memcpy(fifobuf + sizeof(struct protoPacketHeader), protoReq->buf, protoReq->header.len);
 
 	request.magic = 0xCAFECAFE;
 	request.cmd = FIFO_PKT_PROTO;
@@ -130,8 +130,7 @@ void proto_startup(void)
 {
 	struct protoPacket pkt;
 	pkt.header.type = PROTO_PACKET_STARTUP;
-	pkt.header.apiId = 0;
+	pkt.header.len = 0;
 	pkt.buf = NULL;
-	pkt.bufLen = 0;
 	proto_send_packet(&pkt);
 }

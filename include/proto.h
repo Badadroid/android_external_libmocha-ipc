@@ -51,14 +51,39 @@ enum PROTO_PACKET_API_ID
 
 struct protoPacketHeader {
 	uint16_t type;
-	uint16_t apiId;
+	uint16_t len;
 } __attribute__((__packed__));
 
 struct protoPacket {
 	struct protoPacketHeader header;
 	uint8_t *buf;
-	uint32_t bufLen; //this can't be in header because framebuffer shouldn't contain it
 } __attribute__((__packed__));
+
+
+typedef struct {
+	uint16_t opMode;
+	uint16_t protoType;
+	char napAddr[65];
+	char dialNumber[65];
+	uint32_t preferredAccountHandle;
+	uint32_t bStaticIpAddr; //Or something related to IP
+	uint32_t bValidLocalAddr; //Or something similiar, if(bStaticIpAddr == 1) bValidLocalAddr = 1; else bValidLocalAddr = 0;
+	uint32_t localAddr; //In host byte order
+	uint32_t bStaticDnsAddr;
+	uint32_t bValidDnsAddr1; // same comments as for ip address
+	uint32_t dnsAddr1;
+	uint32_t bValidDnsAddr2;
+	uint32_t dnsAddr2;
+	uint32_t unknown1;
+	uint32_t bHasPreferredAccount; // Or something
+	uint32_t serviceOption;
+	uint32_t unknown2[4];
+	uint32_t trafficClass;
+	uint8_t unknown3[42];
+	uint8_t authType;
+	char userId[45];
+	char userPasswd[34];	
+} __attribute__((__packed__)) protoStartNetwork;
 
 void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
 
