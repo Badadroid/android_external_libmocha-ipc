@@ -82,7 +82,7 @@ typedef struct {
 	uint8_t unknown3[42];
 	uint8_t authType;
 	char userId[45];
-	char userPasswd[34];	
+	char userPasswd[45];
 } __attribute__((__packed__)) protoStartNetwork;
 
 void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
