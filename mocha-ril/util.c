@@ -18,7 +18,8 @@
  * along with mocha-ril.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
- 
+
+#include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <stdio.h>
