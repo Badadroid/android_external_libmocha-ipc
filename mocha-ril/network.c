@@ -248,7 +248,10 @@ void ril_request_data_registration_state(RIL_Token t)
 
 	memset(response, 0, sizeof(response));
 
-	asprintf(&response[0], "%d", ril_data.state.reg_state);
+	if (ril_data.state.act == RADIO_TECH_UNKNOWN)
+		asprintf(&response[0], "%d", 0);
+	else
+		asprintf(&response[0], "%d", ril_data.state.reg_state);
 	asprintf(&response[1], "%x", ril_data.state.lac_id);
 	asprintf(&response[2], "%x", ril_data.state.cell_id);
 	asprintf(&response[3], "%d", ril_data.state.act);
