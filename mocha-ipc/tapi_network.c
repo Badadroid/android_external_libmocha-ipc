@@ -143,7 +143,7 @@ void tapi_network_set_mode(uint32_t mode)
 	tapi_send_packet(&pkt);
 }
 
-void tapi_network_serch(void)
+void tapi_network_search(void)
 {
 	uint32_t buf = 0;
 	struct tapiPacket pkt;

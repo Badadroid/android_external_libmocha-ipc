@@ -165,6 +165,6 @@ void tapi_network_init(void);
 void tapi_set_subscription_mode(uint8_t mode);
 void tapi_network_set_mode(uint32_t mode);
 void tapi_set_offline_mode(uint8_t mode);
-void tapi_network_serch(void);
+void tapi_network_search(void);
 
 #endif

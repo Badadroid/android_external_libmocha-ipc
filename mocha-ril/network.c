@@ -352,6 +352,6 @@ error:
 
 void ril_request_query_available_networks(RIL_Token t)
 {
-	tapi_network_serch();
+	tapi_network_search();
 	ril_data.tokens.query_avail_networks = t;
 }
