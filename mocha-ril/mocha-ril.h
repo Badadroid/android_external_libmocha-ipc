@@ -135,6 +135,7 @@ struct ril_tokens {
 	RIL_Token outgoing_sms;
 	RIL_Token dtmf_start;
 	RIL_Token dtmf_stop;
+	RIL_Token query_avail_networks;
 };
 
 void ril_tokens_check(void);
@@ -295,12 +296,14 @@ void ipc_network_radio_info(void* data);
 void ipc_network_select(void* data);
 void ipc_cell_info(void* data);
 void ipc_network_nitz_info(void* data);
+void ipc_network_search_cnf(void* data);
 void network_start(void);
 void ril_request_operator(RIL_Token t);
 void ril_request_voice_registration_state(RIL_Token t);
 void ril_request_data_registration_state(RIL_Token t);
 void ril_request_get_preferred_network_type(RIL_Token t);
 void ril_request_set_preferred_network_type(RIL_Token t, void *data, size_t datalen);
+void ril_request_query_available_networks(RIL_Token t);
 
 /* SIM */
 void ril_sim_init(void);

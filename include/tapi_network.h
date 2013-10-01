@@ -133,6 +133,23 @@ typedef struct {
 	uint8_t networkOrder;
 } tapiNetwork;
 
+enum TAPI_NETWORK_SYSTEM {
+	TAPI_NETWORK_SYSTEM_UMTS = 7,
+	TAPI_NETWORK_SYSTEM_GSM = 5,
+};
+
+typedef struct {
+	uint8_t systemType;
+	uint8_t unknown2;
+	uint8_t unknown3[6];
+	uint16_t MNC;
+	uint16_t MCC;
+	uint32_t bForbidden;
+	uint32_t bCurrent;
+	uint32_t bAvailable;
+	char name[64];
+} __attribute__((__packed__)) tapiNetSearchCnf;
+
 void tapi_network_parser(uint16_t tapiNetworkType, uint32_t tapiNetworkLength, uint8_t *tapiNetworkData);
 
 void tapi_network_api_request(uint32_t tapiNetLength, uint8_t *tapiNetData);
@@ -148,5 +165,6 @@ void tapi_network_init(void);
 void tapi_set_subscription_mode(uint8_t mode);
 void tapi_network_set_mode(uint32_t mode);
 void tapi_set_offline_mode(uint8_t mode);
+void tapi_network_serch(void);
 
 #endif

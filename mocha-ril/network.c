@@ -168,6 +168,49 @@ void ipc_network_nitz_info(void* data)
 	ril_request_unsolicited(RIL_UNSOL_NITZ_TIME_RECEIVED, str, strlen(str) + 1);
 }
 
+void ipc_network_search_cnf(void* data)
+{
+	ALOGD("%s: Test me! ", __func__);
+	char **response;
+	int length;
+	int count;
+	int index;
+	int i;
+
+
+	int num_entries = ((uint8_t *)data)[0];
+
+	ALOGD("%s: Listed %d PLMNs\n", __func__, num_entries);
+	length = sizeof(char *) * 4 * num_entries;
+	response = (char **) calloc(1, length);
+	count = 0;
+
+	for (i = 0; i < num_entries; i++)
+	{
+		tapiNetSearchCnf* entry = (tapiNetSearchCnf *)(((uint8_t *)data) + (sizeof(tapiNetSearchCnf) * i + 4));
+		index = count * 4;
+		asprintf(&response[index], "%s", entry->name);
+		asprintf(&response[index + 1], "%s", entry->name);
+		asprintf(&response[index + 2], "%3d%2d", entry->MCC, entry->MNC);
+		if (entry->bForbidden)
+			response[index + 3] = strdup("forbidden");
+		else if (entry->bCurrent)
+			response[index + 3] = strdup("current");
+		else if (entry->bAvailable)
+			response[index + 3] = strdup("available");
+		else
+			response[index + 3] = strdup("unknown");
+		count++;
+	}
+
+	ril_request_complete(ril_data.tokens.query_avail_networks, RIL_E_SUCCESS, response, length);
+
+	for (i = 0; i < num_entries ; i++) {
+		if (response[i] != NULL)
+			free(response[i]);
+	}
+}
+
 void network_start(void)
 {
 	tapiStartupNetworkInfo start_info;
@@ -307,3 +350,8 @@ error:
 
 }
 
+void ril_request_query_available_networks(RIL_Token t)
+{
+	tapi_network_serch();
+	ril_data.tokens.query_avail_networks = t;
+}

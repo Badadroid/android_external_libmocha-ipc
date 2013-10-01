@@ -66,6 +66,9 @@ void tapi_network_parser(uint16_t tapiNetType, uint32_t tapiNetLength, uint8_t *
 	case TAPI_NETWORK_NITZ_INFO_IND:
 		tapi_network_nitz_info_ind(tapiNetLength, tapiNetData);
 		break;
+	case TAPI_NETWORK_SEARCH_CNF:
+		ipc_invoke_ril_cb(NETWORK_SEARCH_CNF, (void*)tapiNetData);
+		break;
     default:
 		DEBUG_I("TapiNetwork packet type 0x%X is not yet handled, len = 0x%x", tapiNetType, tapiNetLength);
     	break;
@@ -137,6 +140,18 @@ void tapi_network_set_mode(uint32_t mode)
 	pkt.header.tapiServiceFunction = TAPI_NETWORK_SET_MODE;
 	pkt.buf = (uint8_t *)&mode;
 	
+	tapi_send_packet(&pkt);
+}
+
+void tapi_network_serch(void)
+{
+	uint32_t buf = 0;
+	struct tapiPacket pkt;
+	pkt.header.len = 4;
+	pkt.header.tapiService = TAPI_TYPE_NETWORK;
+	pkt.header.tapiServiceFunction = TAPI_NETWORK_SEARCH;
+	pkt.buf = (uint8_t *)&buf;
+
 	tapi_send_packet(&pkt);
 }
 

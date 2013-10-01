@@ -380,10 +380,10 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_DATA_REGISTRATION_STATE:
 			ril_request_data_registration_state(t);
 			break;
-#if 0
 		case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:
 			ril_request_query_available_networks(t);
 			break;
+#if 0
 		case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
 			ril_request_query_network_selection_mode(t);
 			break;
@@ -503,6 +503,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(NETWORK_SELECT, ipc_network_select);
 	ipc_register_ril_cb(NETWORK_CELL_INFO, ipc_cell_info);
 	ipc_register_ril_cb(NETWORK_NITZ_INFO_IND, ipc_network_nitz_info);
+	ipc_register_ril_cb(NETWORK_SEARCH_CNF, ipc_network_search_cnf);
 	ipc_register_ril_cb(CALL_INCOMING_IND, ipc_call_incoming);
 	ipc_register_ril_cb(CALL_END_IND, ipc_call_end);
 	ipc_register_ril_cb(CALL_SETUP_IND, ipc_call_setup_ind);
