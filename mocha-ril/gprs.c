@@ -27,6 +27,7 @@
 
 #include "mocha-ril.h"
 #include "util.h"
+#include <proto.h>
 
 // libnetutils missing prototype
 extern int ifc_configure(const char *ifname,
@@ -42,28 +43,62 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	char *username = NULL;
 	char *password = NULL;
 	char *apn = NULL;
+	protoStartNetwork* start_network;
 
-	/* get the apn, username and password */
+
+
+	if (data == NULL || length < (int) (4 * sizeof(char *)))
+		goto error;
+
 	apn = ((char **) data)[2];
 	username = ((char **) data)[3];
-
-	if(username != NULL) {
-		if(strlen(username) < 2)
-			username = "";
-	} else {
-		username = "";
-	}
-
 	password = ((char **) data)[4];
 
-	if(password != NULL) {
-		if(strlen(password) < 2)
-			password = "";
-	} else {
-		password = "";
+	ALOGD("Requesting data connection to APN '%s'\n", apn);
+
+	start_network = (protoStartNetwork *)malloc(sizeof(protoStartNetwork));
+	memset(start_network, 0, sizeof(protoStartNetwork));
+
+	start_network->opMode = 1;
+	start_network->protoType = 1;
+
+	unsigned int i = 0;
+
+	while (i < strlen(apn))
+	{
+		start_network->napAddr[i] = apn[i];
+
+		i = i + 1;
 	}
 
-	ALOGD("Requesting data connection to APN '%s'\n", apn);
+	start_network->preferredAccountHandle = 0x21;
+	start_network->localAddr = 0xFFFFFFFF;
+	start_network->dnsAddr1 = 0xFFFFFFFF;
+	start_network->dnsAddr2 = 0xFFFFFFFF;
+//	start_network->authType = 0x01; //PAP
+	i = 0;
+
+	while (i < strlen(username))
+	{
+		start_network->userId[i] = username[i];
+
+		i = i + 1;
+	}
+
+	i = 0;
+
+	while (i < strlen(password))
+	{
+		start_network->userPasswd[i] = password[i];
+
+		i = i + 1;
+	}
+
+	proto_start_network(start_network);
+
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 
 }
 

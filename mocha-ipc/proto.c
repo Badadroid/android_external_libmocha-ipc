@@ -63,38 +63,33 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 
     switch (rx_header->type)
     {
-	case PROTO_PACKET_STARTUP:
-		DEBUG_I("PROTO_PACKET_STARTUP packet received");
-		break;
-	case PROTO_PACKET_CLEANUP:
-		DEBUG_I("PROTO_PACKET_CLEANUP packet received");
-		break;
-	case PROTO_PACKET_START_NETWORK:
-		DEBUG_I("PROTO_PACKET_STARTNETWORK packet received");
-		break;
-	case PROTO_PACKET_STOP_NETWORK:
-		DEBUG_I("PROTO_PACKET_STOPNETWORK packet received");
-		break;
 	case PROTO_PACKET_STARTING_NETWORK_IND:
-		DEBUG_I("PROTO_PACKET_STARTINGNETWORKIND packet received");
+		DEBUG_I("PROTO_PACKET_STARTING_NETWORK_IND packet received");
 		break;
 	case PROTO_PACKET_START_NETWORK_CNF:
-		DEBUG_I("PROTO_PACKET_STARTNETWORKCNF packet received");
+		DEBUG_I("PROTO_PACKET_START_NETWORK_CNF packet received");
 		break;
 	case PROTO_PACKET_START_NETWORK_IND:
-		DEBUG_I("PROTO_PACKET_STARTNETWORKIND packet received");
+		DEBUG_I("PROTO_PACKET_START_NETWORK_IND packet received");
 		break;
 	case PROTO_PACKET_STOP_NETWORK_CNF:
-		DEBUG_I("PROTO_PACKET_STOPNETWORKCNF packet received");
+		DEBUG_I("PROTO_PACKET_STOP_NETWORK_CNF packet received");
 		break;
 	case PROTO_PACKET_STOP_NETWORK_IND:
-		DEBUG_I("PROTO_PACKET_STOPNETWORKIND packet received");
+		DEBUG_I("PROTO_PACKET_STOP_NETWORK_IND packet received");
 		break;
 	case PROTO_PACKET_SUSPEND_NETWORK_IND:
-		DEBUG_I("PROTO_PACKET_SUSPENDNETWORKIND packet received");
+		DEBUG_I("PROTO_PACKET_SUSPEND_NETWORK_IND packet received");
 		break;
 	case PROTO_PACKET_RESUME_NETWORK_IND:
-		DEBUG_I("PROTO_PACKET_RESUMENETWORKIND packet received");
+		DEBUG_I("PROTO_PACKET_RESUME_NETWORK_IND packet received");
+		break;
+	case PROTO_PACKET_MODEM_RRC_CONNECTION_IND:
+		DEBUG_I("PROTO_PACKET_MODEM_RRC_CONNECTION_IND packet received");
+		break;
+	case PROTO_PACKET_DS_NETWORK_IND:
+		DEBUG_I("PROTO_PACKET_DS_NETWORK_IND packet received");
+		proto_unknown2(ipc_frame->data + sizeof(struct protoPacketHeader));
 		break;
 	default :
     	DEBUG_I("Unknown Proto Packet");
@@ -132,5 +127,36 @@ void proto_startup(void)
 	pkt.header.type = PROTO_PACKET_STARTUP;
 	pkt.header.len = 0;
 	pkt.buf = NULL;
+	proto_send_packet(&pkt);
+}
+
+void proto_start_network(protoStartNetwork* startNetwork)
+{
+	struct protoPacket pkt;
+	pkt.header.type = PROTO_PACKET_STARTUP;
+	pkt.header.len = sizeof(protoStartNetwork);
+	pkt.buf = (uint8_t*)(startNetwork);
+	DEBUG_I("proto_start_network: size = %x; APN = %s; UserName = %s; Pass = %s", pkt.header.len, startNetwork->napAddr, startNetwork->userId, startNetwork->userPasswd);
+	hex_dump(pkt.buf , pkt.header.len);
+	proto_send_packet(&pkt);
+}
+
+void proto_unknown2(uint8_t* buf)
+{
+	struct protoPacket pkt;
+	pkt.header.type = PROTO_PACKET_UNKNOWN2;
+	pkt.header.len = 8;
+	pkt.buf = buf;
+	hex_dump(buf, 8);
+	proto_send_packet(&pkt);
+}
+
+void proto_some_unload_function(uint32_t buf)
+{
+	struct protoPacket pkt;
+	pkt.header.type = PROTO_PACKET_SOME_UNLOAD_FUNCTION;
+	pkt.header.len = 4;
+	pkt.buf = (uint8_t*)&buf;
+	hex_dump(&buf, 4);
 	proto_send_packet(&pkt);
 }

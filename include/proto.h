@@ -89,5 +89,8 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
 
 void proto_send_packet(struct protoPacket* protoReq);
 void proto_startup(void);
+void proto_start_network(protoStartNetwork* startNetwork);
+void proto_unknown2(uint8_t* buf);
+void proto_some_unload_function(uint32_t buf);
 
 #endif
