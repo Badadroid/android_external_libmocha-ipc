@@ -78,30 +78,7 @@ void ril_request_radio_power(RIL_Token t, void *data, size_t datalen)
 		ril_data.state.power_state = POWER_STATE_NORMAL;
 		ril_data.state.radio_state = RADIO_STATE_ON;
 		network_start();
-	}
-	
-	ril_request_unsolicited(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-	return;
-#if 0
-	if(power_state > 0) {
-		ALOGD("Request power to NORMAL");
-		power_data = IPC_PWR_PHONE_STATE_NORMAL;
-		ipc_send(IPC_PWR_PHONE_STATE, IPC_TYPE_EXEC, (void *) &power_data, sizeof(power_data), reqGetId(t));
-
-		ril_data.state.radio_power = t;
-
-		/* Don't tell the RIL we're not off anymore: wait for the message */
-	} else {
-		ALOGD("Request power to LPM");
-		power_data = IPC_PWR_PHONE_STATE_LPM;
-		ipc_send(IPC_PWR_PHONE_STATE, IPC_TYPE_EXEC, (void *) &power_data, sizeof(power_data), reqGetId(t));
-
 		ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
-
-		/* We're not going to get any message to make sure we're in LPM so tell RILJ we're off anyway */
-		ril_globals_init();
-		ril_data.state_lpm();
-		ril_request_unsolicited(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 	}
-#endif
+	return;
 }
