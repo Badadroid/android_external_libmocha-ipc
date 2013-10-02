@@ -64,11 +64,13 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 
 	unsigned int i = 0;
 
-	while (i < strlen(apn))
+	if (apn != NULL)
 	{
-		start_network->napAddr[i] = apn[i];
-
-		i = i + 1;
+		while (i < strlen(apn))
+		{
+			start_network->napAddr[i] = apn[i];
+			i = i + 1;
+		}
 	}
 
 	start_network->preferredAccountHandle = 0x21;
@@ -76,22 +78,25 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	start_network->dnsAddr1 = 0xFFFFFFFF;
 	start_network->dnsAddr2 = 0xFFFFFFFF;
 //	start_network->authType = 0x01; //PAP
-	i = 0;
 
-	while (i < strlen(username))
+	if (username != NULL)
 	{
-		start_network->userId[i] = username[i];
-
-		i = i + 1;
+		i = 0;
+		while (i < strlen(username))
+		{
+			start_network->userId[i] = username[i];
+			i = i + 1;
+		}
 	}
 
-	i = 0;
-
-	while (i < strlen(password))
+	if (password != NULL)
 	{
-		start_network->userPasswd[i] = password[i];
-
-		i = i + 1;
+		i = 0;
+		while (i < strlen(password))
+		{
+			start_network->userPasswd[i] = password[i];
+			i = i + 1;
+		}
 	}
 
 	proto_start_network(start_network);
