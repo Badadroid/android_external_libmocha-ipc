@@ -170,8 +170,14 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			memset(buf + 0xAF, 0, 15);
 			break;
 		case SIM_EVENT_VERIFY_PIN1_IND:
-			DEBUG_I("SIM_PIN");
-			sim_status(3);
+			if (buf[sizeof(simEventPacketHeader)] == 3)
+			{
+				DEBUG_I("SIM_PUK");
+				sim_status(4);
+			} else {
+				DEBUG_I("SIM_PIN");
+				sim_status(3);
+			}
 			break;
 		case SIM_EVENT_VERIFY_CHV:
 			if (simEvent->eventStatus == SIM_OK) {
@@ -180,6 +186,15 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				DEBUG_I("SIM: something wrong with pin verify responce");
 				DEBUG_I("SIM_PIN");
 				sim_status(3);
+			}
+			break;
+		case SIM_EVENT_UNBLOCK_CHV:
+			if (simEvent->eventStatus == SIM_OK) {
+				puk_status(buf + sizeof(simEventPacketHeader));
+			} else {
+				DEBUG_I("SIM: something wrong with puk verify responce");
+				DEBUG_I("SIM_PUK");
+				sim_status(4);
 			}
 			break;
 		case SIM_EVENT_FILE_INFO:
@@ -250,6 +265,7 @@ void sim_send_oem_req(uint8_t* simBuf, uint8_t simBufLen)
 	request.datasize = bufLen;
 
 	request.data = fifobuf;
+	hex_dump(fifobuf, bufLen);
 
 	ipc_send(&request);
 
@@ -286,7 +302,21 @@ void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin)
 
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, 0xB, packetBuf, 10);
+	sim_send_oem_data(hSim, SIM_EVENT_CHANGE_CHV, packetBuf, 10);
+}
+
+void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin)
+{
+	uint8_t packetBuf[20];
+	SIM_VALIDATE_SID(hSim);
+	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
+	//TODO: if session is not busy, mark it busy
+	memset(packetBuf, 0x00, 20);
+
+	packetBuf[0] = pinType;
+	memcpy(packetBuf+1, puk, strlen(puk)); //max puk len is 9 digits
+	memcpy(packetBuf+11, pin, strlen(pin)); //max pin len is 9 digits
+	sim_send_oem_data(hSim, SIM_EVENT_UNBLOCK_CHV, packetBuf, 20);
 }
 
 int sim_atk_open(void)
@@ -338,10 +368,16 @@ void sim_status(int simCardStatus)
 	ipc_invoke_ril_cb(SIM_STATUS, (void*)simCardStatus);
 }
 
-void pin_status(uint8_t *pinStatus)
+void pin_status(uint8_t *lockStatus)
 {
 	DEBUG_I("PIN STATUS CHANGED");
-	ipc_invoke_ril_cb(PIN_STATUS, (void*)pinStatus);
+	ipc_invoke_ril_cb(PIN_STATUS, (void*)lockStatus);
+}
+
+void puk_status(uint8_t *lockStatus)
+{
+	DEBUG_I("PUK STATUS CHANGED");
+	ipc_invoke_ril_cb(PUK_STATUS, (void*)lockStatus);
 }
 
 void sim_get_data_from_modem(uint8_t hSim, sim_data_request *sim_data)

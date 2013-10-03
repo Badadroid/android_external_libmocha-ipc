@@ -56,7 +56,7 @@ void ipc_sim_status(void *data)
 void ipc_pin_status(void* data)
 {
 	ALOGE("%s: test me!", __func__);
-	pinStatus* pinSt = (pinStatus*)(data);
+	lockStatus* pinSt = (lockStatus*)(data);
 	int attempts = -1;
 	switch(pinSt->status){
 		case 0:
@@ -75,7 +75,33 @@ void ipc_pin_status(void* data)
 			attempts = 0;
 			ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
 			sim_status(4);
-			return;	
+			return;
+	}
+}
+
+void ipc_puk_status(void* data)
+{
+	ALOGE("%s: test me!", __func__);
+	lockStatus* pukSt = (lockStatus*)(data);
+	int attempts = -1;
+	switch(pukSt->status){
+		case 0:
+			DEBUG_I("%s : Correct password ", __func__);
+			ril_request_complete(ril_data.tokens.puk_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+			DEBUG_I("SIM_READY");
+			sim_status(2);
+			return;
+		case 1:
+			DEBUG_I("%s : Wrong password ", __func__);
+			attempts = pukSt->attempts;
+			ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			return;
+		case 2:
+			DEBUG_I("%s : Wrong password and no attempts left!", __func__);
+			attempts = 0;
+			ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			sim_status(5);
+			return;
 	}
 }
 
@@ -242,11 +268,30 @@ void ril_state_update(ril_sim_state sim_state)
 void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen)
 {
 	char *pin = ((char **) data)[0];
-	/* 1. Send PIN */
+
 	if (strlen(data) > 16) {
 		ALOGE("%s: pin exceeds maximum length", __FUNCTION__);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 	}
 	sim_verify_chv(0x4, 0x0, pin);
 	ril_data.tokens.pin_status = t;
+}
+
+void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen)
+{
+	char *puk;
+	char *pin;
+
+	if (data == NULL || datalen < (int) (2 * sizeof(char *)))
+		goto error;
+
+	puk = ((char **) data)[0];
+	pin = ((char **) data)[1];
+
+	sim_unblock_chv(0x4, 0x2, puk, pin);
+	ril_data.tokens.puk_status = t;
+
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }

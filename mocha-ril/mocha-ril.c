@@ -363,6 +363,9 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_ENTER_SIM_PIN:
 			ril_request_enter_sim_pin(t, data, datalen);
 			break;
+		case RIL_REQUEST_ENTER_SIM_PUK:
+			ril_request_enter_sim_puk(t, data, datalen);
+			break;
 #if 0
 		case RIL_REQUEST_QUERY_FACILITY_LOCK:
 			ril_request_query_facility_lock(t, data, datalen);
@@ -517,6 +520,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(CALL_ERROR, ipc_call_error);
 	ipc_register_ril_cb(SIM_STATUS, ipc_sim_status);
 	ipc_register_ril_cb(PIN_STATUS, ipc_pin_status);
+	ipc_register_ril_cb(PUK_STATUS, ipc_puk_status);
 	ipc_register_ril_cb(NETTEXT_INCOMING, ipc_incoming_sms);
 	ipc_register_ril_cb(NETTEXT_SEND_CALLBACK, ipc_sms_send_status);
 	ipc_register_ril_cb(SIM_IO_RESPONSE, ipc_sim_io_response);
