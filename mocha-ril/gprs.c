@@ -2,6 +2,8 @@
  * This file is part of mocha-ril.
  *
  * Copyright (C) 2013 Dominik Marszk <dmarszk@gmail.com>
+ * Copyright (C) 2011-2013 Paul Kocialkowski <contact@paulk.fr>
+ * Copyright (C) 2011 Denis 'GNUtoo' Carikli <GNUtoo@no-log.org>
  *
  * mocha-ril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +38,77 @@ extern int ifc_configure(const char *ifname,
 	in_addr_t gateway,
 	in_addr_t dns1,
 	in_addr_t dns2);
+
+
+int ril_gprs_connection_register(int cid)
+{
+	struct ril_gprs_connection *gprs_connection;
+	struct list_head *list_end;
+	struct list_head *list;
+
+	gprs_connection = calloc(1, sizeof(struct ril_gprs_connection));
+	if (gprs_connection == NULL)
+		return -1;
+
+	gprs_connection->cid = cid;
+
+	list_end = ril_data.gprs_connections;
+	while (list_end != NULL && list_end->next != NULL)
+		list_end = list_end->next;
+
+	list = list_head_alloc((void *) gprs_connection, list_end, NULL);
+
+	if (ril_data.gprs_connections == NULL)
+		ril_data.gprs_connections = list;
+
+	return 0;
+}
+
+void ril_gprs_connection_unregister(struct ril_gprs_connection *gprs_connection)
+{
+	struct list_head *list;
+
+	if (gprs_connection == NULL)
+		return;
+
+	list = ril_data.gprs_connections;
+	while (list != NULL) {
+		if (list->data == (void *) gprs_connection) {
+			memset(gprs_connection, 0, sizeof(struct ril_gprs_connection));
+			free(gprs_connection);
+
+			if (list == ril_data.gprs_connections)
+				ril_data.gprs_connections = list->next;
+
+			list_head_free(list);
+
+			break;
+		}
+list_continue:
+		list = list->next;
+	}
+}
+
+struct ril_gprs_connection *ril_gprs_connection_find_cid(int cid)
+{
+	struct ril_gprs_connection *gprs_connection;
+	struct list_head *list;
+
+	list = ril_data.gprs_connections;
+	while (list != NULL) {
+		gprs_connection = (struct ril_gprs_connection *) list->data;
+		if (gprs_connection == NULL)
+			goto list_continue;
+
+		if (gprs_connection->cid == cid)
+			return gprs_connection;
+
+list_continue:
+		list = list->next;
+	}
+
+	return NULL;
+}
 
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
