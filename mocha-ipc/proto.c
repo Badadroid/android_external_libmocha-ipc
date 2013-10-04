@@ -133,7 +133,7 @@ void proto_startup(void)
 void proto_start_network(protoStartNetwork* startNetwork)
 {
 	struct protoPacket pkt;
-	pkt.header.type = PROTO_PACKET_STARTUP;
+	pkt.header.type = PROTO_PACKET_START_NETWORK;
 	pkt.header.len = sizeof(protoStartNetwork);
 	pkt.buf = (uint8_t*)(startNetwork);
 	DEBUG_I("proto_start_network: size = %x; APN = %s; UserName = %s; Pass = %s", pkt.header.len, startNetwork->napAddr, startNetwork->userId, startNetwork->userPasswd);
