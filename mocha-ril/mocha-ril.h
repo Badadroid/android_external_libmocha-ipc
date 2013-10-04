@@ -187,22 +187,6 @@ struct ril_state {
 	char proper_plmn[9];
 	char SPN[NET_MAX_SPN_LEN];
 	unsigned char dtmf_tone;
-#if 0
-	struct ipc_sec_sim_status_response sim_pin_status;
-	struct ipc_sec_sim_icc_type sim_type;
-
-	struct ipc_net_regist_response netinfo;
-	struct ipc_net_regist_response gprs_netinfo;
-	struct ipc_net_current_plmn_response plmndata;
-
-	struct ipc_call_status call_status;
-
-	int gprs_last_failed_cid;
-
-	unsigned char ussd_state;
-
-	unsigned char sms_incoming_msg_tpid;
-#endif
 };
 
 void ril_state_lpm(void);
@@ -225,9 +209,6 @@ struct ril_data {
 	struct ril_state state;
 	struct ril_tokens tokens;
 	struct list_head *gprs_connections;
-	struct list_head *incoming_sms;
-	struct list_head *outgoing_sms;
-	struct list_head *generic_responses;
 	struct list_head *requests;
 	int request_id;
 	char smsc_number[30];
