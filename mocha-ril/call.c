@@ -28,7 +28,7 @@
 #include "mocha-ril.h"
 #include <tapi_call.h>
 
-callContext* findActiveCall()
+ril_call_context* find_active_call()
 {
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
@@ -42,14 +42,14 @@ callContext* findActiveCall()
 	return NULL;
 }
 
-callContext* newCallContext()
+ril_call_context* new_ril_call_context()
 {
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
 		if(!ril_data.calls[i])
 		{
-			ril_data.calls[i] = calloc(1, sizeof(callContext));
+			ril_data.calls[i] = calloc(1, sizeof(ril_call_context));
 			return ril_data.calls[i];
 		}
 	}
@@ -57,7 +57,7 @@ callContext* newCallContext()
 	return NULL;
 }
 
-callContext* findCallContext(uint32_t callId)
+ril_call_context* find_ril_call_context(uint32_t callId)
 {
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
@@ -71,7 +71,7 @@ callContext* findCallContext(uint32_t callId)
 	return NULL;
 }
 
-void releaseCallContext(callContext* ptr)
+void release_ril_call_context(ril_call_context* ptr)
 {
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
@@ -103,7 +103,7 @@ void ipc_call_incoming(void* data)
 	}
 
 
-	callContext* callCtxt = newCallContext();
+	ril_call_context* callCtxt = new_ril_call_context();
 	tapiCallInfo* callInfo = (tapiCallInfo*)(data);
 	
 	ALOGE("ipc_call_incoming: Incoming call received from %s", callInfo->phoneNumber);
@@ -123,32 +123,32 @@ void ipc_call_incoming(void* data)
 
 void ipc_call_end(void* data)
 {
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	tapiCallEnd* callEndInfo = (tapiCallEnd*)(data);
 	ALOGE("%s : Test me! callId = %d, cause = %d", __func__, callEndInfo->callId, callEndInfo->cause);
-	callCtxt = findCallContext(callEndInfo->callId);
+	callCtxt = find_ril_call_context(callEndInfo->callId);
 	if(!callCtxt)
 		return;
 	if(callCtxt->token != 0)
 	{
 		ril_request_complete(callCtxt->token, RIL_E_SUCCESS, NULL, 0);
-		releaseCallContext(callCtxt);
+		release_ril_call_context(callCtxt);
 		return;
 	}
-	releaseCallContext(callCtxt);
+	release_ril_call_context(callCtxt);
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
 
 void ipc_call_setup_ind(void* data)
 {
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	uint32_t callId = *(uint32_t *)(data);
 	ALOGE("%s : Test me! callId = %d", __func__, callId);
-	callCtxt = findCallContext(0xFFFFFFFF);
+	callCtxt = find_ril_call_context(0xFFFFFFFF);
 	if(!callCtxt)
 		return;
 	callCtxt->callId = callId;
-	callCtxt = findCallContext(callId);
+	callCtxt = find_ril_call_context(callId);
 	if(callCtxt->token != 0)
 	{
 		ril_request_complete(callCtxt->token, RIL_E_SUCCESS, NULL, 0);
@@ -158,11 +158,11 @@ void ipc_call_setup_ind(void* data)
 
 void ipc_call_alert(void* data)
 {
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	uint32_t callId = *(uint32_t *)(data);
 	uint32_t bAudioOn = *(uint32_t *)((uint8_t*)(data) + 4);
 	ALOGE("%s : Test me! callId = %d, bAudioOn = %d", __func__, callId, bAudioOn);
-	callCtxt = findCallContext(callId);
+	callCtxt = find_ril_call_context(callId);
 	if(!callCtxt)
 		return;
 	callCtxt->call_state = RIL_CALL_ALERTING;
@@ -171,10 +171,10 @@ void ipc_call_alert(void* data)
 
 void ipc_call_connected(void* data)
 {
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	uint32_t callId = *(uint32_t *)(data);
 	DEBUG_I("%s : Test me! callId = %d", __func__, callId);
-	callCtxt = findCallContext(callId);
+	callCtxt = find_ril_call_context(callId);
 	if(!callCtxt)
 		return;
 	callCtxt->call_state = RIL_CALL_ACTIVE;
@@ -228,12 +228,12 @@ error:
 
 void ipc_call_hold(void* data)
 {
-	callContext* heldCtxt;
+	ril_call_context* heldCtxt;
 	tapiCallEnd* holdCnf = (tapiCallEnd*)(data);
 	ALOGE("%s: test me!(callId:%d, cause:%d)", __func__, 
 	holdCnf->callId, holdCnf->cause);
 	
-	heldCtxt = findCallContext(holdCnf->callId);
+	heldCtxt = find_ril_call_context(holdCnf->callId);
 	if(!heldCtxt)
 		return;
 
@@ -248,13 +248,13 @@ void ipc_call_hold(void* data)
 
 void ipc_call_swap(void* data)
 {
-	callContext* activatedCtxt, *heldCtxt;
+	ril_call_context* activatedCtxt, *heldCtxt;
 	tapiSwapCnf* swapCnf = (tapiSwapCnf*)(data);
 	ALOGE("%s: test me!(ActivatedCallNo:%d,HeldCallNo:%d, cause:%d)", __func__, 
 	swapCnf->activatedCallId, swapCnf->heldCallId, swapCnf->cause);
 	
-	activatedCtxt = findCallContext(swapCnf->activatedCallId);
-	heldCtxt = findCallContext(swapCnf->heldCallId);
+	activatedCtxt = find_ril_call_context(swapCnf->activatedCallId);
+	heldCtxt = find_ril_call_context(swapCnf->heldCallId);
 	if(!activatedCtxt || !heldCtxt)
 		return;
 
@@ -275,12 +275,12 @@ void ipc_call_swap(void* data)
 
 void ipc_call_activate(void* data)
 {
-	callContext* activatedCtxt;
+	ril_call_context* activatedCtxt;
 	tapiCallEnd* activateCnf = (tapiCallEnd*)(data);
 	ALOGE("%s: test me!(callNo:%d, cause:%d)", __func__, 
 	activateCnf->callId, activateCnf->cause);
 	
-	activatedCtxt = findCallContext(activateCnf->callId);
+	activatedCtxt = find_ril_call_context(activateCnf->callId);
 	if(!activatedCtxt)
 		return;
 
@@ -295,32 +295,32 @@ void ipc_call_activate(void* data)
 
 void ipc_call_error(void* data)
 {
-	callContext* errorCtxt;
+	ril_call_context* errorCtxt;
 	tapiCallError* errorInd = (tapiCallError*)(data);
 	ALOGE("%s: test me!(callNo:%d, error:%d)", __func__, errorInd->callId, errorInd->error);
 
-	errorCtxt = findCallContext(errorInd->callId);
+	errorCtxt = find_ril_call_context(errorInd->callId);
 	if(!errorCtxt)
 		return;
 
 	if(errorCtxt->token != 0)
 		ril_request_complete(errorCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-	releaseCallContext(errorCtxt);
+	release_ril_call_context(errorCtxt);
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
 
 void ril_request_dial(RIL_Token t, void *data, size_t datalen)
 {	
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	tapiCallSetup *callSetup;
 	RIL_Dial *dial;
 	int clir;
 
-	if (findCallContext(0xFFFFFFFF) != NULL || data == NULL || datalen < sizeof(RIL_Dial))
+	if (find_ril_call_context(0xFFFFFFFF) != NULL || data == NULL || datalen < sizeof(RIL_Dial))
 		goto error;
 
 	dial = (RIL_Dial *) data;
-	callCtxt = newCallContext();
+	callCtxt = new_ril_call_context();
 	if(!callCtxt)
 		goto error;
 	
@@ -403,7 +403,7 @@ void ril_request_get_current_calls(RIL_Token t)
 
 void ril_request_hangup(RIL_Token t, void *data, size_t datalen)
 {
-	callContext* callCtxt;
+	ril_call_context* callCtxt;
 	if(datalen < 4)
 		goto error;
 	callCtxt = ril_data.calls[*(int *)(data) - 1];
@@ -427,10 +427,10 @@ error:
 void ril_request_hangup_waiting_or_background(RIL_Token t)
 {
 	int i;
-	callContext* activeCtxt = NULL;
-	callContext* holdCtxt = NULL;
-	callContext* waitCtxt = NULL;
-	callContext* incomingCtxt = NULL;
+	ril_call_context* activeCtxt = NULL;
+	ril_call_context* holdCtxt = NULL;
+	ril_call_context* waitCtxt = NULL;
+	ril_call_context* incomingCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
 		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)
@@ -520,8 +520,8 @@ error:
 void ril_request_hangup_foreground_resume_background(RIL_Token t)
 {
 	int i;
-	callContext* activeCtxt = NULL;
-	callContext* holdCtxt = NULL;
+	ril_call_context* activeCtxt = NULL;
+	ril_call_context* holdCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
 		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)
@@ -622,7 +622,7 @@ void ril_request_dtmf(RIL_Token t, void *data, int length)
 void ril_request_dtmf_start(RIL_Token t, void *data, int length)
 {
 	unsigned char tone;
-	callContext* activeCall = findActiveCall();
+	ril_call_context* activeCall = find_active_call();
 	
 	if (activeCall == NULL || data == NULL || length < (int) sizeof(unsigned char))
 		goto error;
@@ -650,7 +650,7 @@ error:
 
 void ril_request_dtmf_stop(RIL_Token t)
 {
-	callContext* activeCall = findActiveCall();
+	ril_call_context* activeCall = find_active_call();
 	
 	if (activeCall == NULL)
 		goto error;
@@ -668,9 +668,9 @@ error:
 void ril_request_switch_waiting_or_holding_and_active(RIL_Token t)
 {
 	int i;
-	callContext* activeCtxt = NULL;
-	callContext* holdCtxt = NULL;
-	callContext* waitCtxt = NULL;
+	ril_call_context* activeCtxt = NULL;
+	ril_call_context* holdCtxt = NULL;
+	ril_call_context* waitCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
 		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)

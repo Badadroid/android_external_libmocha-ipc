@@ -195,13 +195,23 @@ void ril_state_lpm(void);
  * RIL data
  */
 
-typedef struct {
+typedef struct ril_call_context {
 	uint32_t callId, callType;
 	uint8_t bMT;
 	char number[64];
 	uint32_t call_state;
 	RIL_Token token;
-} callContext;
+} ril_call_context;
+
+typedef struct ril_gprs_connection {
+	int cid;
+	int enabled;
+	RIL_DataCallFailCause fail_cause;
+
+	char *interface;
+
+	RIL_Token token;
+} ril_gprs_connection;
 
 struct ril_data {
 	struct RIL_Env *env;
@@ -214,7 +224,7 @@ struct ril_data {
 	char smsc_number[30];
 	int inDevice;
 	int outDevice;
-	callContext *calls[MAX_CALLS];
+	ril_call_context *calls[MAX_CALLS];
 	struct ril_client *ipc_packet_client;
 	struct ril_client *srs_client;
 

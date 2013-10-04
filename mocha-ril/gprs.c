@@ -111,3 +111,4 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 {
 	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
 }
+
