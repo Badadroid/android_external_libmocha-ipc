@@ -39,7 +39,6 @@ extern int ifc_configure(const char *ifname,
 	in_addr_t dns1,
 	in_addr_t dns2);
 
-
 int ril_gprs_connection_register(int cid)
 {
 	struct ril_gprs_connection *gprs_connection;
@@ -110,6 +109,15 @@ list_continue:
 	return NULL;
 }
 
+void ipc_proto_start_network_cnf(void* data)
+{
+	ALOGE("%s: Implement me!", __func__);
+//	ril_request_complete(ril_data.tokens.setup_data_call, RIL_E_SUCCESS, NULL, 0);
+}
+void ipc_proto_receive_data_ind(void* data)
+{
+	ALOGE("%s: Implement me!", __func__);
+}
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 {
@@ -174,6 +182,7 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 
 	proto_start_network(start_network);
 
+	ril_data.tokens.setup_data_call = t;
 	return;
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);

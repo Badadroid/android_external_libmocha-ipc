@@ -80,5 +80,5 @@ void ril_request_radio_power(RIL_Token t, void *data, size_t datalen)
 		network_start();
 		ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
 	}
-	return;
+	ril_request_unsolicited(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0); 
 }

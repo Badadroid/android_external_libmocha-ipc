@@ -128,6 +128,7 @@ void ril_request_timed_callback(RIL_TimedCallback callback, void *data, const st
 struct ril_tokens {
 	RIL_Token radio_power;
 	RIL_Token pin_status;
+	RIL_Token puk_status;
 	RIL_Token get_imei;
 	RIL_Token get_imeisv;
 	RIL_Token baseband_version;
@@ -136,6 +137,7 @@ struct ril_tokens {
 	RIL_Token dtmf_start;
 	RIL_Token dtmf_stop;
 	RIL_Token query_avail_networks;
+	RIL_Token setup_data_call;
 };
 
 void ril_tokens_check(void);
@@ -277,6 +279,8 @@ void ril_request_dtmf_stop(RIL_Token t);
 void ril_request_switch_waiting_or_holding_and_active(RIL_Token t);
 
 /* GPRS */
+void ipc_proto_start_network_cnf(void* data);
+void ipc_proto_receive_data_ind(void* data);
 void ril_request_setup_data_call(RIL_Token t, void *data, int length);
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
 
@@ -300,10 +304,12 @@ void ril_request_query_available_networks(RIL_Token t);
 void ril_sim_init(void);
 void ipc_sim_status(void *data);
 void ipc_pin_status(void* data);
+void ipc_puk_status(void* data);
 void ipc_sim_io_response(void* data);
 void ril_request_get_sim_status(RIL_Token t);
 void ril_state_update(ril_sim_state sim_state);
 void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen);
+void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
 
 /* SMS */
 void ipc_sms_send_status(void* data);
