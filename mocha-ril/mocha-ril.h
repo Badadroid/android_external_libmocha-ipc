@@ -137,6 +137,7 @@ struct ril_tokens {
 	RIL_Token dtmf_start;
 	RIL_Token dtmf_stop;
 	RIL_Token query_avail_networks;
+	RIL_Token setup_data_call;
 };
 
 void ril_tokens_check(void);
@@ -287,6 +288,8 @@ void ril_request_dtmf_stop(RIL_Token t);
 void ril_request_switch_waiting_or_holding_and_active(RIL_Token t);
 
 /* GPRS */
+void ipc_proto_start_network_cnf(void* data);
+void ipc_proto_receive_data_ind(void* data);
 void ril_request_setup_data_call(RIL_Token t, void *data, int length);
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
 

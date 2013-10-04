@@ -78,6 +78,8 @@ enum ipc_ril_cb_type {
     SIM_IO_RESPONSE,
     SS_USSD_CALLBACK,
     SS_ERROR,
+    PROTO_START_NETWORK_CNF,
+    PROTO_RECEIVE_DATA_IND,
 	IPC_RIL_CB_LAST
 };
 
