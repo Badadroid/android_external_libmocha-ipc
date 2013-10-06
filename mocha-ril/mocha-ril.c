@@ -450,6 +450,12 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_DEACTIVATE_DATA_CALL:
 			ril_request_deactivate_data_call(t, data, datalen);
 			break;
+		case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:
+			ril_request_last_data_call_fail_cause(t);
+			break;
+		case RIL_REQUEST_DATA_CALL_LIST:
+			ril_request_data_call_list(t);
+			break;
 		/* SND */
 		case RIL_REQUEST_SET_MUTE:
 			ril_request_set_mute(t, data, datalen);

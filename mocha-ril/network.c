@@ -27,6 +27,7 @@
 #include <tapi_network.h>
 #include <tapi_nettext.h>
 #include <sim.h>
+#include <proto.h>
 
 int ipc2ril_net_mode(uint32_t mode)
 {
@@ -300,7 +301,7 @@ void ril_request_data_registration_state(RIL_Token t)
 	asprintf(&response[3], "%d", ril_data.state.act);
 	if(ril_data.state.reg_state == 3) /* If registration failed */
 		asprintf(&response[4], "%d", 7); /* Set "GPRS services not allowed" reason of failure - can we get real reason? Do we need to? */
-	asprintf(&response[5], "%d", 2);
+	asprintf(&response[5], "%d", MAX_CONNECTIONS);
 
 	ril_request_complete(t, RIL_E_SUCCESS, response, sizeof(response));
 

@@ -206,12 +206,15 @@ typedef struct ril_call_context {
 } ril_call_context;
 
 typedef struct ril_gprs_connection {
+	uint32_t contextId;
+	int status;
 	int cid;
-	int enabled;
-	RIL_DataCallFailCause fail_cause;
-
+	int active;
+	char *type;
 	char *interface;
-
+	char *addresses;
+	char *dnses;
+	char *gateways;
 	RIL_Token token;
 } ril_gprs_connection;
 
@@ -279,10 +282,18 @@ void ril_request_dtmf_stop(RIL_Token t);
 void ril_request_switch_waiting_or_holding_and_active(RIL_Token t);
 
 /* GPRS */
+int ril_gprs_connection_register(int cid);
+void ril_gprs_connection_unregister(struct ril_gprs_connection *gprs_connection);
+struct ril_gprs_connection *ril_gprs_connection_find_cid(int cid);
+struct ril_gprs_connection *ril_gprs_connection_find_contextId(uint32_t contextId);
+struct ril_gprs_connection *ril_gprs_connection_start(void);
+void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection);
 void ipc_proto_start_network_cnf(void* data);
 void ipc_proto_receive_data_ind(void* data);
 void ril_request_setup_data_call(RIL_Token t, void *data, int length);
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
+void ril_request_last_data_call_fail_cause(RIL_Token t);
+void ril_request_data_call_list(RIL_Token t);
 
 /* NETWORK */
 int ipc2ril_net_mode(uint32_t mode);

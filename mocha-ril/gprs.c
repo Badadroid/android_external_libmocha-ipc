@@ -1,6 +1,7 @@
 /**
  * This file is part of mocha-ril.
  *
+ * Copyright (C) 2013 Nikolay Volkov <volk204@mail.ru>
  * Copyright (C) 2013 Dominik Marszk <dmarszk@gmail.com>
  * Copyright (C) 2011-2013 Paul Kocialkowski <contact@paulk.fr>
  * Copyright (C) 2011 Denis 'GNUtoo' Carikli <GNUtoo@no-log.org>
@@ -26,6 +27,7 @@
 #define LOG_TAG "RIL-Mocha-GPRS"
 #include <utils/Log.h>
 #include <cutils/properties.h>
+#include <netutils/ifc.h>
 
 #include "mocha-ril.h"
 #include "util.h"
@@ -109,10 +111,134 @@ list_continue:
 	return NULL;
 }
 
+struct ril_gprs_connection *ril_gprs_connection_find_contextId(uint32_t contextId)
+{
+	struct ril_gprs_connection *gprs_connection;
+	struct list_head *list;
+
+	list = ril_data.gprs_connections;
+	while (list != NULL) {
+		gprs_connection = (struct ril_gprs_connection *) list->data;
+		if (gprs_connection == NULL)
+			goto list_continue;
+
+		if (gprs_connection->contextId == contextId)
+			return gprs_connection;
+
+list_continue:
+		list = list->next;
+	}
+
+	return NULL;
+}
+
+struct ril_gprs_connection *ril_gprs_connection_start(void)
+{
+	struct ril_gprs_connection *gprs_connection;
+	struct list_head *list;
+	int cid;
+	int rc;
+	int i;
+
+	for (i = 0 ; i < MAX_CONNECTIONS ; i++) {
+		cid = i + 1;
+		list = ril_data.gprs_connections;
+		while (list != NULL) {
+			if (list->data == NULL)
+				goto list_continue;
+
+			gprs_connection = (struct ril_gprs_connection *) list->data;
+			if (gprs_connection->cid == cid) {
+				cid = 0;
+				break;
+				}
+
+list_continue:
+			list = list->next;
+		}
+
+		if (cid > 0)
+			break;
+	}
+
+	if (cid <= 0) {
+		ALOGE("Unable to find an unused cid, aborting");
+		return NULL;
+	}
+
+	ALOGD("Using GPRS connection cid: %d", cid);
+	rc = ril_gprs_connection_register(cid);
+	if (rc < 0)
+		return NULL;
+
+	gprs_connection = ril_gprs_connection_find_cid(cid);
+		return gprs_connection;
+}
+
+void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
+{
+	if (gprs_connection == NULL)
+		return;
+
+	if (gprs_connection->interface != NULL)
+		free(gprs_connection->interface);
+
+	ril_gprs_connection_unregister(gprs_connection);
+}
+
 void ipc_proto_start_network_cnf(void* data)
 {
 	ALOGE("%s: Implement me!", __func__);
-//	ril_request_complete(ril_data.tokens.setup_data_call, RIL_E_SUCCESS, NULL, 0);
+
+	struct ril_gprs_connection *gprs_connection;
+	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
+	RIL_Data_Call_Response_v6 *setup_data_call_response;
+
+	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection, aborting");
+		return;
+	}
+	gprs_connection->contextId = netCnf->contextId;
+
+ char *subnet_mask;
+in_addr_t subnet_mask_addr;
+
+	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 0) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 24) & 0xFF));
+	ALOGD("real subnet_mask %s", subnet_mask);
+
+	// FIXME: subnet isn't reliable!
+	asprintf(&subnet_mask, "%s", "255.255.255.255");
+
+	ALOGD("fake subnet_mask %s", subnet_mask);
+
+	subnet_mask_addr = inet_addr(subnet_mask);
+
+
+
+	asprintf(&gprs_connection->interface, "dev/tun%d", gprs_connection->cid - 1);
+	asprintf(&gprs_connection->addresses, "%d.%d.%d.%d/%d",((netCnf->netInfo.ip >> 0) & 0xFF), ((netCnf->netInfo.ip >> 8) & 0xFF), ((netCnf->netInfo.ip >> 16) & 0xFF), ((netCnf->netInfo.ip >> 24) & 0xFF), ipv4NetmaskToPrefixLength(subnet_mask_addr));
+	asprintf(&gprs_connection->dnses, "%d.%d.%d.%d %d.%d.%d.%d",((netCnf->netInfo.dnsAddr1 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF));
+	asprintf(&gprs_connection->gateways, "%d.%d.%d.%d",((netCnf->netInfo.gatewayIp >> 0) & 0xFF), ((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), ((netCnf->netInfo.gatewayIp >> 24) & 0xFF));	
+
+	ALOGD("GPRS configuration: cid: %d, type: %s, iface: %s, ip: %s, gateway: %s, dnses: %s", gprs_connection->cid, gprs_connection->type, gprs_connection->interface, gprs_connection->addresses, gprs_connection->gateways, gprs_connection->dnses);
+
+	setup_data_call_response = calloc(1, sizeof(RIL_Data_Call_Response_v6));
+
+	setup_data_call_response->status = PDP_FAIL_NONE;
+	setup_data_call_response->cid = gprs_connection->cid;
+	setup_data_call_response->active = 1;
+	setup_data_call_response->type = gprs_connection->type;
+	setup_data_call_response->ifname = gprs_connection->interface;
+	setup_data_call_response->addresses = gprs_connection->addresses;
+	setup_data_call_response->dnses = gprs_connection->dnses;
+	setup_data_call_response->gateways = gprs_connection->gateways;
+
+	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
+	free(setup_data_call_response);
+
+
 }
 void ipc_proto_receive_data_ind(void* data)
 {
@@ -121,11 +247,11 @@ void ipc_proto_receive_data_ind(void* data)
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 {
+	struct ril_gprs_connection *gprs_connection = NULL;
 	char *username = NULL;
 	char *password = NULL;
 	char *apn = NULL;
 	protoStartNetwork* start_network;
-
 
 
 	if (data == NULL || length < (int) (4 * sizeof(char *)))
@@ -136,6 +262,18 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	password = ((char **) data)[4];
 
 	ALOGD("Requesting data connection to APN '%s'\n", apn);
+
+	gprs_connection = ril_gprs_connection_start();
+
+	if (!gprs_connection) {
+		ALOGE("Unable to create GPRS connection, aborting");
+		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		return;
+	}
+
+	gprs_connection->token = t;
+	gprs_connection->contextId = 0xFFFFFFFF;
+	asprintf(&gprs_connection->type, "%s", ((char **) data)[6]);
 
 	start_network = (protoStartNetwork *)malloc(sizeof(protoStartNetwork));
 	memset(start_network, 0, sizeof(protoStartNetwork));
@@ -182,7 +320,6 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 
 	proto_start_network(start_network);
 
-	ril_data.tokens.setup_data_call = t;
 	return;
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -191,6 +328,17 @@ error:
 
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 {
-	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
+	ALOGE("%s: Implement me!", __func__);
+//	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
+}
+
+void ril_request_last_data_call_fail_cause(RIL_Token t)
+{
+	ALOGE("%s: Implement me!", __func__);
+
+}
+void ril_request_data_call_list(RIL_Token t)
+{
+	ALOGE("%s: Implement me!", __func__);
 }
 
