@@ -380,6 +380,7 @@ int tun_alloc(char *dev, int flags)
 	if( (fd = open(clonedev, O_RDWR)) < 0 ) {
 		return fd;
 	}
+	ALOGD("Clonedevice %s opened with fd %d, trying to create %s with flags 0x%X", clonedev, fd, dev, flags);
 
 	/* preparation of the struct ifr, of type "struct ifreq" */
 	memset(&ifr, 0, sizeof(ifr));
