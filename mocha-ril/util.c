@@ -365,7 +365,6 @@ SmsCodingScheme sms_get_coding_scheme(int dataCoding)
 
 int tun_alloc(char *dev, int flags)
 {
-
 	struct ifreq ifr;
 	int fd, err;
 	char *clonedev = "/dev/tun";

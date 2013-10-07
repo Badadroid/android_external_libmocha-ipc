@@ -80,7 +80,7 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 			break;
 		case PROTO_PACKET_DS_NETWORK_IND:
 			DEBUG_I("PROTO_PACKET_DS_NETWORK_IND packet received");
-			proto_unknown2(ipc_frame->data + sizeof(struct protoPacketHeader));
+			proto_ds_network_resp(ipc_frame->data + sizeof(struct protoPacketHeader));
 			break;
 		case PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND:
 			DEBUG_I("PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND packet received");
@@ -136,13 +136,13 @@ void proto_start_network(protoStartNetwork* startNetwork)
 	proto_send_packet(&pkt);
 }
 
-void proto_unknown2(uint8_t* buf)
+void proto_ds_network_resp(uint8_t* buf)
 {
 	struct protoPacket pkt;
-	pkt.header.type = PROTO_PACKET_UNKNOWN2;
+	pkt.header.type = PROTO_PACKET_DS_NETWORK_RESP;
 	pkt.header.len = 8;
 	pkt.buf = buf;
-	DEBUG_I("proto_unknown2");
+	DEBUG_I("proto_ds_network_resp");
 	hex_dump(buf, 8);
 	proto_send_packet(&pkt);
 }

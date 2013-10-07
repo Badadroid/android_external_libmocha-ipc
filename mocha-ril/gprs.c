@@ -23,6 +23,8 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
 
 #define LOG_TAG "RIL-Mocha-GPRS"
 #include <utils/Log.h>
@@ -40,6 +42,36 @@ extern int ifc_configure(const char *ifname,
 	in_addr_t gateway,
 	in_addr_t dns1,
 	in_addr_t dns2);
+	
+struct in_addr htoina(uint32_t addr)
+{
+	struct in_addr ret;
+	ret.s_addr = htonl(addr);
+	return ret;
+}
+
+char* proto_type_to_data_call_type(uint8_t type)
+{
+	switch(type)
+	{
+		case PROTO_TYPE_IP:
+			return "IP";
+		case PROTO_TYPE_PPP:
+			return "PPP";
+		default:
+			return "IP";
+	}
+}
+
+uint8_t data_call_type_to_proto_type(char* type)
+{
+	if(!strcmp(type, "IP") || !strcmp(type, "IPV6") || !strcmp(type, "IPV4V6") )
+		return PROTO_TYPE_IP;
+	else if(!strcmp(type, "PPP"))
+		return PROTO_TYPE_PPP;
+	else
+		return PROTO_TYPE_NONE;
+}
 
 int ril_gprs_connection_register(int cid)
 {
@@ -172,16 +204,28 @@ list_continue:
 		return NULL;
 
 	gprs_connection = ril_gprs_connection_find_cid(cid);
-		return gprs_connection;
+	asprintf(&gprs_connection->ifname, "/dev/tun%d", cid - 1);
+	gprs_connection->iface = tun_alloc(gprs_connection->ifname, IFF_TUN | IFF_NO_PI);
+	if(gprs_connection->iface < 0)
+	{
+		ALOGE("Couldn't create interface %s, errno: %d", gprs_connection->ifname, gprs_connection->iface);
+		if (gprs_connection->ifname != NULL)
+			free(gprs_connection->ifname);
+		ril_gprs_connection_unregister(gprs_connection);
+		return NULL;
+	}
+	
+	return gprs_connection;
 }
 
 void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 {
+	ALOGD("Destroying GPRS connection with cid: %d", gprs_connection->cid);
 	if (gprs_connection == NULL)
 		return;
 
-	if (gprs_connection->interface != NULL)
-		free(gprs_connection->interface);
+	if (gprs_connection->ifname != NULL)
+		free(gprs_connection->ifname);
 
 	ril_gprs_connection_unregister(gprs_connection);
 }
@@ -193,7 +237,7 @@ void ipc_proto_start_network_cnf(void* data)
 	struct ril_gprs_connection *gprs_connection;
 	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
 	RIL_Data_Call_Response_v6 *setup_data_call_response;
-	char *subnet_mask;
+	char *subnet_mask = NULL;
 
 	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
 
@@ -211,34 +255,52 @@ void ipc_proto_start_network_cnf(void* data)
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
 		gprs_connection->token = 0;
+		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
 		return;
 	}
-
+	
 /*	//FIXME: need to find corrent subnet_mask in proto packet
 	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 24) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 0) & 0xFF));
 	ALOGD("real subnet_mask %s", subnet_mask); */
 
 	// FIXME: subnet isn't reliable!
-	asprintf(&subnet_mask, "%s", "255.255.255.255");
-	asprintf(&gprs_connection->interface, "dev/tun%d", gprs_connection->cid - 1);
-	asprintf(&gprs_connection->addresses, "%d.%d.%d.%d/%d",((netCnf->netInfo.localAddr >> 24) & 0xFF), ((netCnf->netInfo.localAddr >> 16) & 0xFF), ((netCnf->netInfo.localAddr >> 8) & 0xFF), ((netCnf->netInfo.localAddr >> 0) & 0xFF), ipv4NetmaskToPrefixLength(inet_addr(subnet_mask)));
-	asprintf(&gprs_connection->dnses, "%d.%d.%d.%d %d.%d.%d.%d",((netCnf->netInfo.dnsAddr1 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF));
-	asprintf(&gprs_connection->gateways, "%d.%d.%d.%d",((netCnf->netInfo.gatewayIp >> 24) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), ((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 0) & 0xFF));	
-
-	ALOGD("GPRS configuration: cid: %d, type: %s, iface: %s, ip: %s, gateway: %s, dnses: %s", gprs_connection->cid, gprs_connection->type, gprs_connection->interface, gprs_connection->addresses, gprs_connection->gateways, gprs_connection->dnses);
-
 	setup_data_call_response = calloc(1, sizeof(RIL_Data_Call_Response_v6));
+	asprintf(&subnet_mask, "%s", "255.255.255.255");
+	asprintf(&setup_data_call_response->addresses, "%s/%d",
+		inet_ntoa(htoina(netCnf->netInfo.localAddr)),
+		ipv4NetmaskToPrefixLength(inet_addr(subnet_mask)));
+	asprintf(&setup_data_call_response->dnses, "%s %d.%d.%d.%d",
+		inet_ntoa(htoina(netCnf->netInfo.dnsAddr1)),
+		((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF),
+		((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF)); //Cannot convert overlap two inet_ntoa calls
+	asprintf(&setup_data_call_response->gateways, "%s", inet_ntoa(htoina(netCnf->netInfo.localAddr)));
+	/*asprintf(&setup_data_call_response->gateways, "%d.%d.%d.%d", 
+		((netCnf->netInfo.gatewayIp >> 24) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), 
+		((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 0) & 0xFF));	
+	*/
 
 	setup_data_call_response->status = PDP_FAIL_NONE;
 	setup_data_call_response->cid = gprs_connection->cid;
-	setup_data_call_response->active = 1;
-	setup_data_call_response->type = gprs_connection->type;
-	setup_data_call_response->ifname = gprs_connection->interface;
-	setup_data_call_response->addresses = gprs_connection->addresses;
-	setup_data_call_response->dnses = gprs_connection->dnses;
-	setup_data_call_response->gateways = gprs_connection->gateways;
+	setup_data_call_response->active = 2;
+	setup_data_call_response->type = proto_type_to_data_call_type(gprs_connection->type);
+	
+	ALOGD("GPRS configuration: cid: %d, type: %s, iface: %s, ip: %s, gateway: %s, dnses: %s", 
+		setup_data_call_response->cid, setup_data_call_response->type, 
+		setup_data_call_response->ifname, setup_data_call_response->addresses, 
+		setup_data_call_response->gateways, setup_data_call_response->dnses);
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
+	
+	if(setup_data_call_response->type)
+		free(setup_data_call_response->type);
+	if(setup_data_call_response->addresses)
+		free(setup_data_call_response->addresses);
+	if(setup_data_call_response->dnses)
+		free(setup_data_call_response->dnses);
+	if(setup_data_call_response->gateways)
+		free(setup_data_call_response->gateways);
+	if(subnet_mask)
+		free(subnet_mask);
 	free(setup_data_call_response);
 }
 
@@ -275,9 +337,16 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 		return;
 	}
 
+	gprs_connection->type = data_call_type_to_proto_type(((char **) data)[6]);
+	if(gprs_connection->type == PROTO_TYPE_NONE)
+	{
+		ALOGE("Unsupported data connection type %s", ((char **) data)[6]);
+		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		ril_gprs_connection_stop(gprs_connection);
+		return;
+	}
 	gprs_connection->token = t;
 	gprs_connection->contextId = 0xFFFFFFFF;
-	asprintf(&gprs_connection->type, "%s", ((char **) data)[6]);
 
 	start_network = (protoStartNetwork *)malloc(sizeof(protoStartNetwork));
 	memset(start_network, 0, sizeof(protoStartNetwork));
@@ -358,8 +427,6 @@ void ril_request_last_data_call_fail_cause(RIL_Token t)
 	}
 
 	fail_cause = gprs_connection->fail_cause;
-
-	ALOGD("Destroying GPRS connection with cid: %d", gprs_connection->cid);
 
 	ril_gprs_connection_stop(gprs_connection);
 

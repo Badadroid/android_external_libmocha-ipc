@@ -211,11 +211,9 @@ typedef struct ril_gprs_connection {
 	int status;
 	int cid;
 	int active;
-	char *type;
-	char *interface;
-	char *addresses;
-	char *dnses;
-	char *gateways;
+	uint8_t type;
+	int iface;
+	char *ifname;
 	RIL_Token token;
 	RIL_DataCallFailCause fail_cause;
 } ril_gprs_connection;

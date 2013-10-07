@@ -43,12 +43,30 @@ enum PROTO_PACKET_API_ID
 	PROTO_PACKET_RECEIVE_DATA_IND = 0xE,
 	PROTO_PACKET_UNKNOWN1 = 0xF,
 	PROTO_PACKET_DS_NETWORK_IND = 0x10,
-	PROTO_PACKET_UNKNOWN2 = 0x11,
+	PROTO_PACKET_DS_NETWORK_RESP = 0x11,
 	PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND = 0x12,
 	PROTO_PACKET_SOME_UNLOAD_FUNCTION = 0x13,
 	PROTO_PACKET_STOP_RRC_CONNECTION = 0x15,
 	PROTO_PACKET_MODEM_RRC_CONNECTION_IND = 0x16,
 	PROTO_PACKET_DEACTIVATE_EXT = 0x37	
+};
+
+enum PROTO_OPMODES
+{
+	PROTO_OPMODE_NONE = 0,
+	PROTO_OPMODE_PS = 1,
+	PROTO_OPMODE_CS = 2,
+	PROTO_OPMODE_WLAN = 3,
+	PROTO_OPMODE_BT = 4,
+	PROTO_OPMODE_NDIS = 5
+};
+
+enum PROTO_TYPES
+{
+	PROTO_TYPE_NONE = 0,
+	PROTO_TYPE_IP = 1,
+	PROTO_TYPE_PPP = 2,
+	PROTO_TYPE_USER = 5,
 };
 
 struct protoPacketHeader {
@@ -120,7 +138,7 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
 void proto_send_packet(struct protoPacket* protoReq);
 void proto_startup(void);
 void proto_start_network(protoStartNetwork* startNetwork);
-void proto_unknown2(uint8_t* buf);
+void proto_ds_network_resp(uint8_t* buf);
 void proto_some_unload_function(uint32_t buf);
 
 #endif
