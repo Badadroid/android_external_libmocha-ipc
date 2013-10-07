@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <errno.h>
 
 #define LOG_TAG "RIL-Mocha-GPRS"
 #include <utils/Log.h>
@@ -208,7 +209,7 @@ list_continue:
 	gprs_connection->iface = tun_alloc(gprs_connection->ifname, IFF_TUN | IFF_NO_PI);
 	if(gprs_connection->iface < 0)
 	{
-		ALOGE("Couldn't create interface %s, errno: %d", gprs_connection->ifname, gprs_connection->iface);
+		ALOGE("Couldn't create interface %s, errno: %d", gprs_connection->ifname, errno());
 		if (gprs_connection->ifname != NULL)
 			free(gprs_connection->ifname);
 		ril_gprs_connection_unregister(gprs_connection);
