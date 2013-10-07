@@ -209,7 +209,7 @@ list_continue:
 	gprs_connection->iface = tun_alloc(gprs_connection->ifname, IFF_TUN | IFF_NO_PI);
 	if(gprs_connection->iface < 0)
 	{
-		ALOGE("Couldn't create interface %s, errno: %d", gprs_connection->ifname, errno());
+		ALOGE("Couldn't create interface %s, errno: %d", gprs_connection->ifname, errno);
 		if (gprs_connection->ifname != NULL)
 			free(gprs_connection->ifname);
 		ril_gprs_connection_unregister(gprs_connection);
