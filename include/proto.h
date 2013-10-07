@@ -88,30 +88,30 @@ typedef struct {
 } __attribute__((__packed__)) protoStartNetwork;
 
 typedef struct {
-uint8_t ipConfigType; //this name is my imagination
-uint8_t align_1[3];
-uint32_t ip;
-uint32_t dns1;
-uint32_t dns2;
-uint32_t subnet;
-uint32_t gatewayIp;
-uint8_t unknown1[110];
-uint32_t bStaticIp;
-uint32_t bValidLocalAddr;
-uint32_t localAddr;
-uint32_t unknown2;
-uint32_t bValidDnsAddr1;
-uint32_t dnsAddr1;
-uint32_t bValidDnsAddr2;
-uint32_t dnsAddr2;
-uint8_t unknown3[165];
+	uint8_t ipConfigType; //this name is my imagination
+	uint8_t align_1[3];
+	uint32_t ip;
+	uint32_t dns1;
+	uint32_t dns2;
+	uint32_t subnet;
+	uint32_t gatewayIp;
+	uint8_t unknown1[110];
+	uint32_t bStaticIp;
+	uint32_t bValidLocalAddr;
+	uint32_t localAddr;
+	uint32_t unknown2;
+	uint32_t bValidDnsAddr1;
+	uint32_t dnsAddr1;
+	uint32_t bValidDnsAddr2;
+	uint32_t dnsAddr2;
+	uint8_t unknown3[165];
 } __attribute__((__packed__)) protoStartNetworkInfo;
 
 typedef struct {
-uint16_t opMode;
-uint16_t protoType;
-uint32_t contextId; //id for this connection
-uint16_t error; //errorcode, if non-zero there's been an error
+	uint16_t opMode;
+	uint16_t protoType;
+	uint32_t contextId; //id for this connection
+	uint16_t error; //errorcode, if non-zero there's been an error
 protoStartNetworkInfo netInfo;
 } __attribute__((__packed__)) protoStartNetworkCnf;
 

@@ -186,6 +186,7 @@ struct ril_state {
 	uint32_t cell_id;
 	uint8_t rac_id;
 	uint16_t lac_id;
+	int gprs_last_failed_cid;
 	char proper_plmn[9];
 	char SPN[NET_MAX_SPN_LEN];
 	unsigned char dtmf_tone;
@@ -216,6 +217,7 @@ typedef struct ril_gprs_connection {
 	char *dnses;
 	char *gateways;
 	RIL_Token token;
+	RIL_DataCallFailCause fail_cause;
 } ril_gprs_connection;
 
 struct ril_data {

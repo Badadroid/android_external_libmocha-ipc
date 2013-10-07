@@ -188,11 +188,12 @@ void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 
 void ipc_proto_start_network_cnf(void* data)
 {
-	ALOGE("%s: Implement me!", __func__);
+	ALOGE("%s: Test me!", __func__);
 
 	struct ril_gprs_connection *gprs_connection;
 	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
 	RIL_Data_Call_Response_v6 *setup_data_call_response;
+	char *subnet_mask;
 
 	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
 
@@ -202,25 +203,27 @@ void ipc_proto_start_network_cnf(void* data)
 	}
 	gprs_connection->contextId = netCnf->contextId;
 
- char *subnet_mask;
-in_addr_t subnet_mask_addr;
+	if (netCnf->error != 0)
+	{
+		//FIXME: add conversion for error
+		ALOGE("There was an error, aborting port list complete");
+		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
+		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
+		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		gprs_connection->token = 0;
+		return;
+	}
 
-	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 0) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 24) & 0xFF));
-	ALOGD("real subnet_mask %s", subnet_mask);
+/*	//FIXME: need to find corrent subnet_mask in proto packet
+	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 24) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 0) & 0xFF));
+	ALOGD("real subnet_mask %s", subnet_mask); */
 
 	// FIXME: subnet isn't reliable!
 	asprintf(&subnet_mask, "%s", "255.255.255.255");
-
-	ALOGD("fake subnet_mask %s", subnet_mask);
-
-	subnet_mask_addr = inet_addr(subnet_mask);
-
-
-
 	asprintf(&gprs_connection->interface, "dev/tun%d", gprs_connection->cid - 1);
-	asprintf(&gprs_connection->addresses, "%d.%d.%d.%d/%d",((netCnf->netInfo.ip >> 0) & 0xFF), ((netCnf->netInfo.ip >> 8) & 0xFF), ((netCnf->netInfo.ip >> 16) & 0xFF), ((netCnf->netInfo.ip >> 24) & 0xFF), ipv4NetmaskToPrefixLength(subnet_mask_addr));
-	asprintf(&gprs_connection->dnses, "%d.%d.%d.%d %d.%d.%d.%d",((netCnf->netInfo.dnsAddr1 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF));
-	asprintf(&gprs_connection->gateways, "%d.%d.%d.%d",((netCnf->netInfo.gatewayIp >> 0) & 0xFF), ((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), ((netCnf->netInfo.gatewayIp >> 24) & 0xFF));	
+	asprintf(&gprs_connection->addresses, "%d.%d.%d.%d/%d",((netCnf->netInfo.localAddr >> 24) & 0xFF), ((netCnf->netInfo.localAddr >> 16) & 0xFF), ((netCnf->netInfo.localAddr >> 8) & 0xFF), ((netCnf->netInfo.localAddr >> 0) & 0xFF), ipv4NetmaskToPrefixLength(inet_addr(subnet_mask)));
+	asprintf(&gprs_connection->dnses, "%d.%d.%d.%d %d.%d.%d.%d",((netCnf->netInfo.dnsAddr1 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr1 >> 0) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF));
+	asprintf(&gprs_connection->gateways, "%d.%d.%d.%d",((netCnf->netInfo.gatewayIp >> 24) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), ((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 0) & 0xFF));	
 
 	ALOGD("GPRS configuration: cid: %d, type: %s, iface: %s, ip: %s, gateway: %s, dnses: %s", gprs_connection->cid, gprs_connection->type, gprs_connection->interface, gprs_connection->addresses, gprs_connection->gateways, gprs_connection->dnses);
 
@@ -237,9 +240,8 @@ in_addr_t subnet_mask_addr;
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
 	free(setup_data_call_response);
-
-
 }
+
 void ipc_proto_receive_data_ind(void* data)
 {
 	ALOGE("%s: Implement me!", __func__);
@@ -247,6 +249,8 @@ void ipc_proto_receive_data_ind(void* data)
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 {
+	ALOGE("%s: Test me!", __func__);
+
 	struct ril_gprs_connection *gprs_connection = NULL;
 	char *username = NULL;
 	char *password = NULL;
@@ -334,9 +338,42 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 
 void ril_request_last_data_call_fail_cause(RIL_Token t)
 {
-	ALOGE("%s: Implement me!", __func__);
+	ALOGE("%s: Test me!", __func__);
+	struct ril_gprs_connection *gprs_connection;
+	int last_failed_cid;
+	int fail_cause;
 
+	last_failed_cid = ril_data.state.gprs_last_failed_cid;
+
+	if (!last_failed_cid) {
+		ALOGE("No GPRS connection was reported to have failed");
+		goto fail_cause_unspecified;
+	}
+
+	gprs_connection = ril_gprs_connection_find_cid(last_failed_cid);
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection");
+		goto fail_cause_unspecified;
+	}
+
+	fail_cause = gprs_connection->fail_cause;
+
+	ALOGD("Destroying GPRS connection with cid: %d", gprs_connection->cid);
+
+	ril_gprs_connection_stop(gprs_connection);
+
+	goto fail_cause_return;
+
+fail_cause_unspecified:
+	fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
+
+fail_cause_return:
+	ril_data.state.gprs_last_failed_cid = 0;
+
+	ril_request_complete(t, RIL_E_SUCCESS, &fail_cause, sizeof(fail_cause));
 }
+
 void ril_request_data_call_list(RIL_Token t)
 {
 	ALOGE("%s: Implement me!", __func__);
