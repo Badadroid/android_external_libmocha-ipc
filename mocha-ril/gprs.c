@@ -179,17 +179,14 @@ struct ril_gprs_connection *ril_gprs_connection_start(void)
 		while (list != NULL) {
 			if (list->data == NULL)
 				goto list_continue;
-
 			gprs_connection = (struct ril_gprs_connection *) list->data;
 			if (gprs_connection->cid == cid) {
 				cid = 0;
 				break;
-				}
-
+			}
 list_continue:
 			list = list->next;
 		}
-
 		if (cid > 0)
 			break;
 	}
@@ -205,7 +202,7 @@ list_continue:
 		return NULL;
 
 	gprs_connection = ril_gprs_connection_find_cid(cid);
-	asprintf(&gprs_connection->ifname, "/dev/tun%d", cid - 1);
+	asprintf(&gprs_connection->ifname, "tun%d", cid - 1);
 	gprs_connection->iface = tun_alloc(gprs_connection->ifname, IFF_TUN | IFF_NO_PI);
 	if(gprs_connection->iface < 0)
 	{
@@ -225,6 +222,8 @@ void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 	if (gprs_connection == NULL)
 		return;
 
+	if (gprs_connection->iface >= 0)
+		close(gprs_connection->iface);
 	if (gprs_connection->ifname != NULL)
 		free(gprs_connection->ifname);
 
@@ -282,6 +281,7 @@ void ipc_proto_start_network_cnf(void* data)
 
 	setup_data_call_response->status = PDP_FAIL_NONE;
 	setup_data_call_response->cid = gprs_connection->cid;
+	setup_data_call_response->ifname = gprs_connection->ifname;
 	setup_data_call_response->active = 2;
 	setup_data_call_response->type = proto_type_to_data_call_type(gprs_connection->type);
 	
