@@ -292,8 +292,6 @@ void ipc_proto_start_network_cnf(void* data)
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
 	
-	if(setup_data_call_response->type)
-		free(setup_data_call_response->type);
 	if(setup_data_call_response->addresses)
 		free(setup_data_call_response->addresses);
 	if(setup_data_call_response->dnses)
