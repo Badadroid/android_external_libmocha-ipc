@@ -156,3 +156,20 @@ void proto_some_unload_function(uint32_t buf)
 	hex_dump(&buf, 4);
 	proto_send_packet(&pkt);
 }
+
+void proto_send_data(uint16_t opMode, uint16_t protoType, uint32_t contextId, uint32_t netBufLen, uint8_t *netBuf)
+{
+	protoTransferDataBuf* send_hdr;
+	struct protoPacket pkt;
+	pkt.header.type = PROTO_PACKET_SEND_DATA;
+	pkt.header.len = sizeof(protoTransferDataBuf) + netBufLen;
+	pkt.buf = malloc(sizeof(protoTransferDataBuf) + netBufLen);
+	send_hdr = (protoTransferDataBuf*)pkt.buf;
+	send_hdr->opMode = opMode;
+	send_hdr->protoType = protoType;
+	send_hdr->contextId = contextId;
+	send_hdr->netBufLen = netBufLen;
+	memcpy(send_hdr->netBuf, netBuf, netBufLen);
+	proto_send_packet(&pkt);
+	free(pkt.buf);
+}

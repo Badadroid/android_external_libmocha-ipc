@@ -21,6 +21,8 @@
  *
  */
 
+#include <pthread.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <linux/if.h>
@@ -43,7 +45,7 @@ extern int ifc_configure(const char *ifname,
 	in_addr_t gateway,
 	in_addr_t dns1,
 	in_addr_t dns2);
-	
+
 struct in_addr htoina(uint32_t addr)
 {
 	struct in_addr ret;
@@ -74,6 +76,68 @@ uint8_t data_call_type_to_proto_type(char* type)
 		return PROTO_TYPE_NONE;
 }
 
+void *gprs_tunneling_thread(void *data)
+{
+	int n;
+	uint8_t buf[1500]; //MTU is 1500
+	ril_gprs_connection *gprs_connection = (ril_gprs_connection *)data;
+    fd_set fds;
+	struct timeval select_timeout;
+
+	ALOGD("%s: Thread initialized for connection cid %d, contextId %d on %s", __func__, 
+		gprs_connection->cid, gprs_connection->contextId, gprs_connection->ifname);
+	while(1)
+	{		
+		pthread_mutex_lock(&gprs_connection->mutex);
+		FD_ZERO(&fds);
+		FD_SET(gprs_connection->iface, &fds);
+		select_timeout.tv_sec = 0;
+		select_timeout.tv_usec = 500000; //500ms select timeout
+		select(gprs_connection->iface+1, &fds, NULL, NULL, &select_timeout);
+		if(gprs_connection->thread_state == 2)
+		{			
+			pthread_mutex_unlock(&gprs_connection->mutex);
+			pthread_exit(NULL);
+			return NULL;
+		}
+		if(FD_ISSET(gprs_connection->iface, &fds)) {
+			n = read(gprs_connection->iface, buf, 1500);
+			RIL_LOCK();
+			ALOGD("%s: Tunneling %d bytes of the net frame from %s to CP", __func__, n, gprs_connection->ifname);
+			proto_send_data(PROTO_OPMODE_PS, gprs_connection->type, gprs_connection->contextId, n, buf);
+			RIL_UNLOCK();
+		}		
+		pthread_mutex_unlock(&gprs_connection->mutex);
+	}
+}
+
+int gprs_start_tunneling_thread(struct ril_gprs_connection *gprs_connection)
+{
+	pthread_attr_t attr;
+	int rd;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	rd = pthread_create(&gprs_connection->thread, &attr, gprs_tunneling_thread, (void *) gprs_connection);
+	if(rd == 0)
+	{
+		gprs_connection->thread_state = 1;
+	}
+	return rd;
+}
+
+int gprs_stop_tunneling_thread(struct ril_gprs_connection *gprs_connection)
+{
+	if(gprs_connection->thread_state == 1)
+	{
+		gprs_connection->thread_state = 2;
+		pthread_mutex_lock(&gprs_connection->mutex);
+		pthread_mutex_unlock(&gprs_connection->mutex);
+		return 0;
+	}
+	return -1;
+}
+
 int ril_gprs_connection_register(int cid)
 {
 	struct ril_gprs_connection *gprs_connection;
@@ -85,6 +149,8 @@ int ril_gprs_connection_register(int cid)
 		return -1;
 
 	gprs_connection->cid = cid;
+	gprs_connection->iface = -1;
+	pthread_mutex_init(&gprs_connection->mutex, NULL);
 
 	list_end = ril_data.gprs_connections;
 	while (list_end != NULL && list_end->next != NULL)
@@ -105,17 +171,17 @@ void ril_gprs_connection_unregister(struct ril_gprs_connection *gprs_connection)
 	if (gprs_connection == NULL)
 		return;
 
+	gprs_stop_tunneling_thread(gprs_connection);
+	pthread_mutex_destroy(&gprs_connection->mutex);
+	memset(gprs_connection, 0, sizeof(struct ril_gprs_connection));
+	free(gprs_connection);
+	
 	list = ril_data.gprs_connections;
 	while (list != NULL) {
 		if (list->data == (void *) gprs_connection) {
-			memset(gprs_connection, 0, sizeof(struct ril_gprs_connection));
-			free(gprs_connection);
-
 			if (list == ril_data.gprs_connections)
 				ril_data.gprs_connections = list->next;
-
 			list_head_free(list);
-
 			break;
 		}
 list_continue:
@@ -133,10 +199,8 @@ struct ril_gprs_connection *ril_gprs_connection_find_cid(int cid)
 		gprs_connection = (struct ril_gprs_connection *) list->data;
 		if (gprs_connection == NULL)
 			goto list_continue;
-
 		if (gprs_connection->cid == cid)
 			return gprs_connection;
-
 list_continue:
 		list = list->next;
 	}
@@ -258,6 +322,17 @@ void ipc_proto_start_network_cnf(void* data)
 		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
 		return;
 	}
+	if(gprs_start_tunneling_thread(gprs_connection) != 0)
+	{
+		//TODO: Close proto on CP side
+		ALOGE("Couldn't start the tunneling thread");
+		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
+		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
+		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		gprs_connection->token = 0;
+		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+		return;
+	}
 	
 /*	//FIXME: need to find corrent subnet_mask in proto packet
 	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 24) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 0) & 0xFF));
@@ -305,7 +380,17 @@ void ipc_proto_start_network_cnf(void* data)
 
 void ipc_proto_receive_data_ind(void* data)
 {
-	ALOGE("%s: Implement me!", __func__);
+	int n;
+	struct ril_gprs_connection *gprs_connection = NULL;
+	protoTransferDataBuf* rcvData = (protoTransferDataBuf*)data;
+	gprs_connection = ril_gprs_connection_find_contextId(rcvData->contextId);
+	if(!gprs_connection || gprs_connection->iface < 0)
+	{
+		ALOGE("%s: Couldn't find gprs_connection context or tun fd is invalid!", __func__);
+		return;
+	}
+	n = write(gprs_connection->iface, rcvData->netBuf, rcvData->netBufLen);
+	ALOGD("%s: Wrote %d/%d bytes of the net frame into %s", __func__, n, rcvData->netBufLen, gprs_connection->ifname);
 }
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
@@ -347,8 +432,7 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	gprs_connection->token = t;
 	gprs_connection->contextId = 0xFFFFFFFF;
 
-	start_network = (protoStartNetwork *)malloc(sizeof(protoStartNetwork));
-	memset(start_network, 0, sizeof(protoStartNetwork));
+	start_network = (protoStartNetwork *)calloc(1, sizeof(protoStartNetwork));
 
 	start_network->opMode = 1;
 	start_network->protoType = 1;

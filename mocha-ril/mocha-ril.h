@@ -216,6 +216,9 @@ typedef struct ril_gprs_connection {
 	char *ifname;
 	RIL_Token token;
 	RIL_DataCallFailCause fail_cause;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+	int thread_state;
 } ril_gprs_connection;
 
 struct ril_data {
