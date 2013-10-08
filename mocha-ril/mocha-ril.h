@@ -22,6 +22,7 @@
 #ifndef _SAMSUNG_RIL_H_
 #define _SAMSUNG_RIL_H_
 
+#include <netinet/in.h>
 #include <pthread.h>
 
 #include <utils/Log.h>
@@ -214,8 +215,12 @@ typedef struct ril_gprs_connection {
 	uint8_t type;
 	int iface;
 	char *ifname;
+	struct in_addr ip, gateway, dns1, dns2;
+	int prefix_len;
+
 	RIL_Token token;
 	RIL_DataCallFailCause fail_cause;
+
 	pthread_t thread;
 	pthread_mutex_t mutex;
 	int thread_state;

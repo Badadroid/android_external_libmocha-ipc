@@ -294,6 +294,8 @@ void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 	ril_gprs_connection_unregister(gprs_connection);
 }
 
+#define IN_ADDR_FMT(ip) ((uint8_t*)&ip.s_addr)[0], ((uint8_t*)&ip.s_addr)[1], ((uint8_t*)&ip.s_addr)[2], ((uint8_t*)&ip.s_addr)[3] 
+
 void ipc_proto_start_network_cnf(void* data)
 {
 	ALOGE("%s: Test me!", __func__);
@@ -301,7 +303,6 @@ void ipc_proto_start_network_cnf(void* data)
 	struct ril_gprs_connection *gprs_connection;
 	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
 	RIL_Data_Call_Response_v6 *setup_data_call_response;
-	char *subnet_mask = NULL;
 
 	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
 
@@ -322,6 +323,13 @@ void ipc_proto_start_network_cnf(void* data)
 		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
 		return;
 	}
+	gprs_connection->ip = htoina(netCnf->netInfo.localAddr);
+	gprs_connection->gateway = htoina(netCnf->netInfo.localAddr);	
+	gprs_connection->dns1 = htoina(netCnf->netInfo.dnsAddr1);	
+	gprs_connection->dns2 = htoina(netCnf->netInfo.dnsAddr2);
+	// FIXME: subnet isn't reliable!
+	gprs_connection->prefix_len = 32;
+
 	if(gprs_start_tunneling_thread(gprs_connection) != 0)
 	{
 		//TODO: Close proto on CP side
@@ -333,22 +341,29 @@ void ipc_proto_start_network_cnf(void* data)
 		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
 		return;
 	}
-	
-/*	//FIXME: need to find corrent subnet_mask in proto packet
-	asprintf(&subnet_mask, "%d.%d.%d.%d", ((netCnf->netInfo.subnet >> 24) & 0xFF), ((netCnf->netInfo.subnet >> 16) & 0xFF), ((netCnf->netInfo.subnet >> 8) & 0xFF), ((netCnf->netInfo.subnet >> 0) & 0xFF));
-	ALOGD("real subnet_mask %s", subnet_mask); */
 
-	// FIXME: subnet isn't reliable!
+	if(ifc_configure(gprs_connection->ifname, gprs_connection->ip.s_addr,
+		gprs_connection->prefix_len, gprs_connection->gateway.s_addr, 
+		gprs_connection->dns1.s_addr, gprs_connection->dns2.s_addr) < 0)
+	{
+		//TODO: Close proto on CP side
+		ALOGE("Couldn't ifc_configure on %s, errno: %d (check system logcat)", gprs_connection->ifname, errno);
+		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
+		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
+		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		gprs_connection->token = 0;
+		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+		return;
+	}
+	
 	setup_data_call_response = calloc(1, sizeof(RIL_Data_Call_Response_v6));
-	asprintf(&subnet_mask, "%s", "255.255.255.255");
-	asprintf(&setup_data_call_response->addresses, "%s/%d",
-		inet_ntoa(htoina(netCnf->netInfo.localAddr)),
-		ipv4NetmaskToPrefixLength(inet_addr(subnet_mask)));
-	asprintf(&setup_data_call_response->dnses, "%s %d.%d.%d.%d",
-		inet_ntoa(htoina(netCnf->netInfo.dnsAddr1)),
-		((netCnf->netInfo.dnsAddr2 >> 24) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 16) & 0xFF),
-		((netCnf->netInfo.dnsAddr2 >> 8) & 0xFF), ((netCnf->netInfo.dnsAddr2 >> 0) & 0xFF)); //Cannot convert overlap two inet_ntoa calls
-	asprintf(&setup_data_call_response->gateways, "%s", inet_ntoa(htoina(netCnf->netInfo.localAddr)));
+	asprintf(&setup_data_call_response->addresses, "%d.%d.%d.%d/%d",
+		IN_ADDR_FMT(gprs_connection->ip),
+		gprs_connection->prefix_len);
+	asprintf(&setup_data_call_response->dnses, "%d.%d.%d.%d %d.%d.%d.%d",
+		IN_ADDR_FMT(gprs_connection->dns1), IN_ADDR_FMT(gprs_connection->dns2));
+	asprintf(&setup_data_call_response->gateways, "%d.%d.%d.%d",
+		IN_ADDR_FMT(gprs_connection->gateway));
 	/*asprintf(&setup_data_call_response->gateways, "%d.%d.%d.%d", 
 		((netCnf->netInfo.gatewayIp >> 24) & 0xFF), ((netCnf->netInfo.gatewayIp >> 16) & 0xFF), 
 		((netCnf->netInfo.gatewayIp >> 8) & 0xFF), ((netCnf->netInfo.gatewayIp >> 0) & 0xFF));	
@@ -373,8 +388,6 @@ void ipc_proto_start_network_cnf(void* data)
 		free(setup_data_call_response->dnses);
 	if(setup_data_call_response->gateways)
 		free(setup_data_call_response->gateways);
-	if(subnet_mask)
-		free(subnet_mask);
 	free(setup_data_call_response);
 }
 
