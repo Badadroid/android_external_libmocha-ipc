@@ -92,7 +92,7 @@ void *gprs_tunneling_thread(void *data)
 		FD_ZERO(&fds);
 		FD_SET(gprs_connection->iface, &fds);
 		select_timeout.tv_sec = 0;
-		select_timeout.tv_usec = 500000; //500ms select timeout
+		select_timeout.tv_usec = 300000; //300ms select timeout
 		select(gprs_connection->iface+1, &fds, NULL, NULL, &select_timeout);
 		if(gprs_connection->thread_state == 2)
 		{			
