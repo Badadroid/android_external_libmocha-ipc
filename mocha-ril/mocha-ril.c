@@ -533,6 +533,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(SS_USSD_CALLBACK, ipc_ss_ussd_response);
 	ipc_register_ril_cb(SS_ERROR, ipc_ss_error_response);
 	ipc_register_ril_cb(PROTO_START_NETWORK_CNF, ipc_proto_start_network_cnf);
+	ipc_register_ril_cb(PROTO_STOP_NETWORK_CNF, ipc_proto_stop_network_cnf);
 	ipc_register_ril_cb(PROTO_RECEIVE_DATA_IND, ipc_proto_receive_data_ind);
 }
  

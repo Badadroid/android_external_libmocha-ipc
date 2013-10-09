@@ -139,6 +139,12 @@ typedef struct {
 	uint32_t contextId; //id for this connection
 } __attribute__((__packed__)) protoStopNetwork;
 
+typedef struct {
+	uint16_t opMode;
+	uint16_t protoType;
+	uint32_t contextId; //id for this connection
+	uint16_t error; //errorcode, if non-zero there's been an error
+} __attribute__((__packed__)) protoStopNetworkCnf;
 
 typedef struct {
 	uint16_t opMode;
@@ -153,6 +159,7 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
 void proto_send_packet(struct protoPacket* protoReq);
 void proto_startup(void);
 void proto_start_network(protoStartNetwork* startNetwork);
+void proto_stop_network(protoStopNetwork* stopNetwork);
 void proto_ds_network_resp(uint8_t* buf);
 void proto_some_unload_function(uint32_t buf);
 void proto_send_data(uint16_t opMode, uint16_t protoType, uint32_t contextId, uint32_t netBufLen, uint8_t *netBuf);

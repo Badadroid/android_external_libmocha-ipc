@@ -61,6 +61,7 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 			break;
 		case PROTO_PACKET_STOP_NETWORK_CNF:
 			DEBUG_I("PROTO_PACKET_STOP_NETWORK_CNF packet received");
+			ipc_invoke_ril_cb(PROTO_STOP_NETWORK_CNF, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_STOP_NETWORK_IND:
 			DEBUG_I("PROTO_PACKET_STOP_NETWORK_IND packet received");

@@ -391,6 +391,33 @@ void ipc_proto_start_network_cnf(void* data)
 	free(setup_data_call_response);
 }
 
+void ipc_proto_stop_network_cnf(void* data)
+{
+	ALOGE("%s: Test me!", __func__);
+
+	struct ril_gprs_connection *gprs_connection;
+	protoStopNetworkCnf* netCnf = (protoStopNetworkCnf*)(data);
+
+	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection, aborting");
+		return;
+	}
+
+	if (netCnf->error != 0)
+	{
+		//FIXME: add conversion for error
+		ALOGE("There was an error, aborting deactivate data call");
+		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		gprs_connection->token = 0;
+		return;
+	}
+
+	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
+	ril_gprs_connection_stop(gprs_connection);
+}
+
 void ipc_proto_receive_data_ind(void* data)
 {
 	int n;
@@ -447,8 +474,8 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 
 	start_network = (protoStartNetwork *)calloc(1, sizeof(protoStartNetwork));
 
-	start_network->opMode = 1;
-	start_network->protoType = 1;
+	start_network->opMode = PROTO_OPMODE_PS;
+	start_network->protoType = gprs_connection->type;
 
 	unsigned int i = 0;
 
@@ -497,8 +524,38 @@ error:
 
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 {
-	ALOGE("%s: Implement me!", __func__);
-//	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
+	ALOGE("%s: Test me!", __func__);
+
+	struct ril_gprs_connection *gprs_connection;
+	char *cid;
+	int rc;
+	protoStopNetwork* stop_network;
+
+	if (data == NULL || length < (int) sizeof(char *))
+		goto error;
+
+	cid = ((char **) data)[0];
+
+	gprs_connection = ril_gprs_connection_find_cid(atoi(cid));
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection, aborting");
+		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+	return;
+	}
+	gprs_connection->token = t;
+
+	stop_network = (protoStopNetwork *)calloc(1, sizeof(protoStopNetwork));
+
+	stop_network->opMode = PROTO_OPMODE_PS;
+	stop_network->protoType = gprs_connection->type;
+	stop_network->contextId = gprs_connection->contextId;
+
+	proto_stop_network(stop_network);
+
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
 
 void ril_request_last_data_call_fail_cause(RIL_Token t)

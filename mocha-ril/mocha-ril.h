@@ -298,6 +298,7 @@ struct ril_gprs_connection *ril_gprs_connection_find_contextId(uint32_t contextI
 struct ril_gprs_connection *ril_gprs_connection_start(void);
 void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection);
 void ipc_proto_start_network_cnf(void* data);
+void ipc_proto_stop_network_cnf(void* data);
 void ipc_proto_receive_data_ind(void* data);
 void ril_request_setup_data_call(RIL_Token t, void *data, int length);
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
