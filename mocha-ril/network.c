@@ -55,22 +55,46 @@ void ipc_network_radio_info(void* data)
 {
 	tapiRadioInfo* radioInfo = (tapiRadioInfo*)(data);
 	RIL_SignalStrength_v6 ss;
-	int rssi;
+	int rssi,asu;
 
 	/* Don't consider this if modem isn't in normal power mode. */
 	if(ril_data.state.power_state < POWER_STATE_NORMAL)
 		return;
 
+	rssi = (uint32_t)radioInfo->rxLevel;
+
+	switch (rssi) {
+
+	case 10:
+		asu = 1;
+		break;
+	case 25:
+		asu = 3;
+		break;
+	case 45:
+		asu = 5;
+		break;
+	case 60:
+		asu = 8;
+		break;
+	case 75:
+		asu = 12;
+		break;
+	case 90:
+		asu = 15;
+		break;
+	default:
+		asu = 1;
+		break;
+	}
+
+	ALOGD("Signal Strength is %d\n", asu);
+
 	memset(&ss, 0, sizeof(ss));
-	memset(&ss.LTE_SignalStrength, -1, sizeof(ss.LTE_SignalStrength));	
-	
-	/* rxLevel appears to be value between 0 and 100, rescale it to 0-31 */
-	rssi = (((uint32_t)radioInfo->rxLevel) * 31) / 100;
+	memset(&ss.LTE_SignalStrength, -1, sizeof(ss.LTE_SignalStrength));
 
-	ss.GW_SignalStrength.signalStrength = rssi;
+	ss.GW_SignalStrength.signalStrength = asu;
 	ss.GW_SignalStrength.bitErrorRate = 99;
-
-	ALOGD("Signal Strength is %d\n", rssi);
 
 	ril_request_unsolicited(RIL_UNSOL_SIGNAL_STRENGTH, &ss, sizeof(ss));
 }
