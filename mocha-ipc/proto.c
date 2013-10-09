@@ -137,6 +137,16 @@ void proto_start_network(protoStartNetwork* startNetwork)
 	proto_send_packet(&pkt);
 }
 
+void proto_stop_network(protoStopNetwork* stopNetwork)
+{
+	struct protoPacket pkt;
+	pkt.header.type = PROTO_PACKET_STOP_NETWORK;
+	pkt.header.len = sizeof(protoStopNetwork);
+	pkt.buf = (uint8_t*)(stopNetwork);
+	hex_dump(pkt.buf , pkt.header.len);
+	proto_send_packet(&pkt);
+}
+
 void proto_ds_network_resp(uint8_t* buf)
 {
 	struct protoPacket pkt;

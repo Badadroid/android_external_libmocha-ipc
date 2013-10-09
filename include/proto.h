@@ -133,6 +133,12 @@ typedef struct {
 	protoStartNetworkInfo netInfo;
 } __attribute__((__packed__)) protoStartNetworkCnf;
 
+typedef struct {
+	uint16_t opMode;
+	uint16_t protoType;
+	uint32_t contextId; //id for this connection
+} __attribute__((__packed__)) protoStopNetwork;
+
 
 typedef struct {
 	uint16_t opMode;
