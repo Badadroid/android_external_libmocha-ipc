@@ -190,6 +190,7 @@ struct ril_state {
 	int gprs_last_failed_cid;
 	char proper_plmn[9];
 	char SPN[NET_MAX_SPN_LEN];
+	char name[NET_MAX_NAME_LEN];
 	unsigned char dtmf_tone;
 };
 

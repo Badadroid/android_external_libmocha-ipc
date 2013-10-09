@@ -144,6 +144,7 @@ void ipc_network_select(void* data)
 	}
 
 	strcpy(ril_data.state.SPN, netInfo->spn);
+	strcpy(ril_data.state.name, netInfo->name);
 
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 }
@@ -271,7 +272,17 @@ void ril_request_operator(RIL_Token t)
 	if (ril_data.state.reg_state == 1) {
 		memset(response, 0, sizeof(response));
 
-		asprintf(&response[0], "%s", ril_data.state.SPN);
+		if (ril_data.state.name[0] != 0)
+			{
+			asprintf(&response[0], "%s", ril_data.state.name);
+			asprintf(&response[1], "%s", ril_data.state.name);
+			}
+		else if (ril_data.state.SPN[0] != 0)
+			{
+			asprintf(&response[0], "%s", ril_data.state.SPN);
+			asprintf(&response[1], "%s", ril_data.state.SPN);
+			}
+
 		asprintf(&response[2], "%s", ril_data.state.proper_plmn);
 
 		ril_request_complete(t, RIL_E_SUCCESS, response, sizeof(response));
