@@ -380,7 +380,13 @@ void ipc_proto_start_network_cnf(void* data)
 		setup_data_call_response->ifname, setup_data_call_response->addresses, 
 		setup_data_call_response->gateways, setup_data_call_response->dnses);
 
+
+
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
+
+	ril_data.data_call_count++;
+	ril_data.tokens.data_call_list = 0;
+	ril_unsol_data_call_list_changed();
 	
 	if(setup_data_call_response->addresses)
 		free(setup_data_call_response->addresses);
@@ -416,6 +422,10 @@ void ipc_proto_stop_network_cnf(void* data)
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
 	ril_gprs_connection_stop(gprs_connection);
+
+	ril_data.data_call_count--;
+	ril_data.tokens.data_call_list = 0;
+	ril_unsol_data_call_list_changed();
 }
 
 void ipc_proto_receive_data_ind(void* data)
@@ -594,8 +604,62 @@ fail_cause_return:
 	ril_request_complete(t, RIL_E_SUCCESS, &fail_cause, sizeof(fail_cause));
 }
 
+void ril_unsol_data_call_list_changed(void)
+{
+	ALOGE("%s: test me me!", __func__);
+	struct ril_gprs_connection *gprs_connection;
+	struct list_head *list;
+	RIL_Data_Call_Response_v6 data_call_list[ril_data.data_call_count];
+	int i = 0;
+
+	memset(data_call_list, 0, sizeof(data_call_list));
+
+	list = ril_data.gprs_connections;
+	while (list != NULL) {
+		gprs_connection = (struct ril_gprs_connection *) list->data;
+		if (gprs_connection == NULL)
+			goto list_continue;
+
+		data_call_list[i].status = PDP_FAIL_NONE;
+		data_call_list[i].cid = gprs_connection->cid;
+		data_call_list[i].active = 2;
+		data_call_list[i].type = proto_type_to_data_call_type(gprs_connection->type);
+		data_call_list[i].ifname = gprs_connection->ifname;
+		asprintf(&data_call_list[i].addresses, "%d.%d.%d.%d/%d",
+			IN_ADDR_FMT(gprs_connection->ip),
+			gprs_connection->prefix_len);
+		asprintf(&data_call_list[i].dnses, "%d.%d.%d.%d %d.%d.%d.%d",
+			IN_ADDR_FMT(gprs_connection->dns1), IN_ADDR_FMT(gprs_connection->dns2));
+		asprintf(&data_call_list[i].gateways, "%d.%d.%d.%d",
+			IN_ADDR_FMT(gprs_connection->gateway));
+		i++;
+
+list_continue:
+		list = list->next;
+	}
+
+	if (ril_data.tokens.data_call_list == 0)
+		ril_request_unsolicited(RIL_UNSOL_DATA_CALL_LIST_CHANGED,
+		&data_call_list, sizeof(data_call_list));
+	else
+		ril_request_complete(ril_data.tokens.data_call_list, RIL_E_SUCCESS,
+		&data_call_list, sizeof(data_call_list));
+
+	for (i = 0; i < ril_data.data_call_count; i++) {
+		if (data_call_list[i].addresses)
+			free(data_call_list[i].addresses);
+		if (data_call_list[i].dnses)
+			free(data_call_list[i].dnses);
+		if (data_call_list[i].gateways)
+			free(data_call_list[i].gateways);
+	}
+
+}
+
 void ril_request_data_call_list(RIL_Token t)
 {
-	ALOGE("%s: Implement me!", __func__);
+	ALOGE("%s: test me me!", __func__);
+	ril_data.tokens.data_call_list = t;
+	ril_unsol_data_call_list_changed();
 }
 
