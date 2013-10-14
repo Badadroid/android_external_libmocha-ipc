@@ -385,8 +385,7 @@ void ipc_proto_start_network_cnf(void* data)
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
 
 	ril_data.data_call_count++;
-	ril_data.tokens.data_call_list = 0;
-	ril_unsol_data_call_list_changed();
+	ril_unsol_data_call_list_changed(0);
 	
 	if(setup_data_call_response->addresses)
 		free(setup_data_call_response->addresses);
@@ -424,8 +423,7 @@ void ipc_proto_stop_network_cnf(void* data)
 	ril_gprs_connection_stop(gprs_connection);
 
 	ril_data.data_call_count--;
-	ril_data.tokens.data_call_list = 0;
-	ril_unsol_data_call_list_changed();
+	ril_unsol_data_call_list_changed(0);
 }
 
 void ipc_proto_receive_data_ind(void* data)
@@ -604,7 +602,7 @@ fail_cause_return:
 	ril_request_complete(t, RIL_E_SUCCESS, &fail_cause, sizeof(fail_cause));
 }
 
-void ril_unsol_data_call_list_changed(void)
+void ril_unsol_data_call_list_changed(RIL_Token t)
 {
 	ALOGE("%s: test me me!", __func__);
 	struct ril_gprs_connection *gprs_connection;
@@ -638,11 +636,11 @@ list_continue:
 		list = list->next;
 	}
 
-	if (ril_data.tokens.data_call_list == 0)
+	if (t == 0)
 		ril_request_unsolicited(RIL_UNSOL_DATA_CALL_LIST_CHANGED,
 		&data_call_list, sizeof(data_call_list));
 	else
-		ril_request_complete(ril_data.tokens.data_call_list, RIL_E_SUCCESS,
+		ril_request_complete(t, RIL_E_SUCCESS,
 		&data_call_list, sizeof(data_call_list));
 
 	for (i = 0; i < ril_data.data_call_count; i++) {
@@ -659,7 +657,6 @@ list_continue:
 void ril_request_data_call_list(RIL_Token t)
 {
 	ALOGE("%s: test me me!", __func__);
-	ril_data.tokens.data_call_list = t;
-	ril_unsol_data_call_list_changed();
+	ril_unsol_data_call_list_changed(t);
 }
 

@@ -139,7 +139,6 @@ struct ril_tokens {
 	RIL_Token dtmf_stop;
 	RIL_Token query_avail_networks;
 	RIL_Token setup_data_call;
-	RIL_Token data_call_list;
 };
 
 void ril_tokens_check(void);
@@ -305,7 +304,7 @@ void ipc_proto_receive_data_ind(void* data);
 void ril_request_setup_data_call(RIL_Token t, void *data, int length);
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
 void ril_request_last_data_call_fail_cause(RIL_Token t);
-void ril_unsol_data_call_list_changed(void);
+void ril_unsol_data_call_list_changed(RIL_Token t);
 void ril_request_data_call_list(RIL_Token t);
 
 /* NETWORK */
