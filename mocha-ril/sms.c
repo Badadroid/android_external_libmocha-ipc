@@ -656,9 +656,9 @@ void ipc_incoming_sms(void* data)
 
 	DEBUG_I("%s : tp_ud = %s", __func__, tp_ud);
 
-	/*
-	if (nettextInfo->bFlash == 1) 
-		dcs += 0x10; */
+
+	if (nettextInfo->bFlash == 1 && nettextInfo->classType == 0)
+		dcs += 0x10;
 
 	asprintf(&tp_dcs, "%02X", dcs);
 
