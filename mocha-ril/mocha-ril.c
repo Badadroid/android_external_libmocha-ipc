@@ -392,11 +392,9 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:
 			ril_request_set_network_selection_manual(t, data, datalen);
 			break;
-#if 0
 		case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
 			ril_request_query_network_selection_mode(t);
 			break;
-#endif		
 		case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:
 			ril_request_get_preferred_network_type(t);
 			break;
@@ -553,6 +551,8 @@ void ril_data_init(void)
 	ril_data.outDevice = SND_OUTPUT_EARPIECE;
 	ril_data.data_call_count = 0;
 	ril_data.tokens.network_selection = 0;
+	//FIXME: Add reading from file
+	ril_data.state.bAutoAttach = 1;
 }
 
 /**

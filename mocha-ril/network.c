@@ -112,6 +112,32 @@ uint32_t ril2ipc_net_mode(int mode)
 			return TAPI_NETWORK_MODE_AUTOMATIC;
 	}
 }
+
+int ipc2ril_plmn_sel(int mode)
+{
+	switch (mode) {
+		case TAPI_NETWORK_SELECTION_MANUAL:
+			return 1;
+		case TAPI_NETWORK_SELECTION_AUTO:
+			return 0;
+		default:
+			return 0;
+		}
+
+}
+
+int ril2ipc_plmn_sel(int mode)
+{
+	switch (mode) {
+		case 0:
+			return TAPI_NETWORK_SELECTION_AUTO;
+		case 1:
+			return TAPI_NETWORK_SELECTION_MANUAL;
+		default:
+		return 0;
+		}
+}
+
  
 void ipc_network_radio_info(void* data)
 {
@@ -371,7 +397,7 @@ void ipc_network_select_cnf(void* data)
 void network_start(void)
 {
 	tapiStartupNetworkInfo start_info;
-	start_info.bAutoSelection = 1;
+	start_info.bAutoSelection = ril_data.state.bAutoAttach;
 	start_info.bPoweronGprsAttach = 1;
 	start_info.networkOrder = 1;
 	start_info.serviceDomain = 0;
@@ -481,7 +507,7 @@ void ril_request_data_registration_state(RIL_Token t)
 void ril_request_get_preferred_network_type(RIL_Token t)
 {
 	int ril_mode;
-	
+
 	ril_mode = ipc2ril_net_mode(ril_data.state.net_mode);
 
 	ril_request_complete(t, RIL_E_SUCCESS, &ril_mode, sizeof(ril_mode));	
@@ -521,11 +547,24 @@ void ril_request_query_available_networks(RIL_Token t)
 	ril_data.tokens.query_avail_networks = t;
 }
 
+void ril_request_query_network_selection_mode(RIL_Token t)
+{
+	int ril_mode;
+
+	ril_mode = ipc2ril_plmn_sel(ril_data.state.bAutoAttach);
+
+	ril_request_complete(t, RIL_E_SUCCESS, &ril_mode, sizeof(ril_mode));
+}
+
 void ril_request_set_network_selection_automatic(RIL_Token t)
 {
 	tapi_network_reselect(1);
 	tapi_set_selection_mode(0);
 	ril_data.tokens.network_selection = t;
+
+	//FIXME: Add write to file
+	ril_data.state.bAutoAttach = TAPI_NETWORK_SELECTION_AUTO;
+
 }
 
 void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t datalen)
@@ -549,6 +588,9 @@ void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t da
 	tapi_network_select(&net_select->net_select_entry);
 
 	ril_data.tokens.network_selection = t;
+
+	//FIXME: Add write to file
+	ril_data.state.bAutoAttach = TAPI_NETWORK_SELECTION_MANUAL;
 
 	return;
 error:

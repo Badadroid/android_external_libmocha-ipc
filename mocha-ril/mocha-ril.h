@@ -185,6 +185,7 @@ struct ril_state {
 	int act;
 	int ussd_state;
 	uint32_t net_mode;
+	int bAutoAttach;
 	uint32_t cell_id;
 	uint8_t rac_id;
 	uint16_t lac_id;
@@ -241,6 +242,7 @@ struct ril_data {
 	struct list_head *gprs_connections;
 	struct list_head *net_select_list;
 	struct list_head *requests;
+
 	int request_id;
 	char smsc_number[30];
 	int inDevice;
@@ -320,6 +322,8 @@ void ril_net_select_unregister(void);
 struct ril_net_select *ril_net_select_find_plmn(char *plmn);
 int ipc2ril_net_mode(uint32_t mode);
 uint32_t ril2ipc_net_mode(int mode);
+int ipc2ril_plmn_sel(int mode);
+int ril2ipc_plmn_sel(int mode);
 void ipc_network_radio_info(void* data);
 void ipc_network_select(void* data);
 void ipc_cell_info(void* data);
@@ -333,6 +337,7 @@ void ril_request_data_registration_state(RIL_Token t);
 void ril_request_get_preferred_network_type(RIL_Token t);
 void ril_request_set_preferred_network_type(RIL_Token t, void *data, size_t datalen);
 void ril_request_query_available_networks(RIL_Token t);
+void ril_request_query_network_selection_mode(RIL_Token t);
 void ril_request_set_network_selection_automatic(RIL_Token t);
 void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t datalen);
 
