@@ -351,6 +351,7 @@ void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
 void ipc_sms_send_status(void* data);
 void ipc_incoming_sms(void* data);
 void ril_request_send_sms(RIL_Token t, void *data, size_t length);
+void ril_request_send_sms_expect_more(RIL_Token t, void *data, size_t length);
 void nettext_cb_setup(void);
 
 /* SS */

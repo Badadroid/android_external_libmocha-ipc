@@ -686,6 +686,12 @@ void ipc_incoming_sms(void* data)
 		free (message_tmp);
 }
 
+void ril_request_send_sms_expect_more(RIL_Token t, void *data, size_t length)
+{
+	// No particular treatment here, we already have a queue
+	ril_request_send_sms(t, data, length);
+}
+
 void nettext_cb_setup(void)
 {
 	tapi_nettext_cb_settings cb_sett_buf;

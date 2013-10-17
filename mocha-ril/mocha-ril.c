@@ -407,14 +407,13 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_SEND_SMS:
 			ril_request_send_sms(t, data, datalen);
 			break;
-#if 0		
 		case RIL_REQUEST_SEND_SMS_EXPECT_MORE:
 			ril_request_send_sms_expect_more(t, data, datalen);
 			break;
 		case RIL_REQUEST_SMS_ACKNOWLEDGE:
-			ril_request_sms_acknowledge(t, data, datalen);
-				break;
-#endif
+			/* implemented in AMMS */
+			ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
+			break;
 		/* CALL */
 		case RIL_REQUEST_DIAL:
 			ril_request_dial(t, data, datalen);
