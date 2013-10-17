@@ -162,6 +162,7 @@ void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin);
+void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin);
 int sim_atk_open(void);
 void sim_open_to_modem(uint8_t hSim);
 void sim_status(int simCardStatus);

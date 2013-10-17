@@ -141,6 +141,7 @@ struct ril_tokens {
 	RIL_Token network_selection;
 	RIL_Token setup_data_call;
 	RIL_Token set_facility_lock;
+	RIL_Token change_sim_pin;
 };
 
 void ril_tokens_check(void);
@@ -354,6 +355,7 @@ void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen);
 void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
 void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen);
 void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen);
+void ril_request_change_sim_pin(RIL_Token t, void *data, size_t datalen);
 
 /* SMS */
 void ipc_sms_send_status(void* data);

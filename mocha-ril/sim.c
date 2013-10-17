@@ -66,6 +66,8 @@ void ipc_lock_status(void* data)
 			DEBUG_I("%s : Correct password ", __func__);
 			if (ril_data.tokens.set_facility_lock != 0)
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.change_sim_pin != 0)
+				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_SUCCESS, &attempts, sizeof(attempts));
 			else if (ril_data.tokens.pin_status != 0)
 			{
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
@@ -84,6 +86,8 @@ void ipc_lock_status(void* data)
 			attempts = pinSt->attempts;
 			if (ril_data.tokens.set_facility_lock != 0)
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.change_sim_pin != 0)
+				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
 			else if (ril_data.tokens.pin_status != 0)
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
 			else
@@ -94,6 +98,8 @@ void ipc_lock_status(void* data)
 			attempts = 0;
 			if (ril_data.tokens.set_facility_lock != 0)
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.change_sim_pin != 0)
+				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
 			else if (ril_data.tokens.pin_status != 0)
 			{
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
@@ -353,6 +359,27 @@ void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen)
 		goto error;
 	}
 	ril_data.tokens.set_facility_lock = t;
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+}
+
+void ril_request_change_sim_pin(RIL_Token t, void *data, size_t datalen)
+{
+	ALOGE("%s: test me!", __func__);
+	char *password_old;
+	char *password_new;
+
+	if (data == NULL || datalen < (int) (2 * sizeof(char *)))
+		goto error;
+
+	password_old = ((char **) data)[0];
+	password_new = ((char **) data)[1];
+
+	sim_change_chv(0x4, 0x0, password_old, password_new);
+
+	ril_data.tokens.change_sim_pin = t;
+
 	return;
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);

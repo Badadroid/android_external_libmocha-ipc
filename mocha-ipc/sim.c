@@ -245,6 +245,11 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				sim_get_data_from_modem(0x5, &sim_data);
 			}		
 			break;
+		case SIM_EVENT_CHANGE_CHV:
+			DEBUG_I("SIM_EVENT_CHANGE_PIN");
+			if (simEvent->eventStatus == SIM_OK)
+				lock_status(buf + sizeof(simEventPacketHeader));
+			break;
 		default:
 			DEBUG_I("SIM DEFAULT");
 			break;
@@ -337,6 +342,20 @@ void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin)
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
 	sim_send_oem_data(hSim, SIM_EVENT_ENABLE_CHV, packetBuf, 10);
+}
+
+void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin)
+{
+	uint8_t packetBuf[20];
+	SIM_VALIDATE_SID(hSim);
+	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
+	//TODO: if session is not busy, mark it busy
+	memset(packetBuf, 0x00, 20);
+
+	packetBuf[0] = pinType;
+	memcpy(packetBuf+1, old_pin, strlen(old_pin)); //max puk len is 9 digits
+	memcpy(packetBuf+11, new_pin, strlen(new_pin)); //max pin len is 9 digits
+	sim_send_oem_data(hSim, 0xF, packetBuf, 20);
 }
 
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin)
