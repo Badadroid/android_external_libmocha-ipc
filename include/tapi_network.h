@@ -152,6 +152,18 @@ typedef struct {
 
 void tapi_network_parser(uint16_t tapiNetworkType, uint32_t tapiNetworkLength, uint8_t *tapiNetworkData);
 
+
+void tapi_network_init(void);
+void tapi_network_startup(tapiStartupNetworkInfo* network_startup_info);
+void tapi_network_shutdown(uint8_t mode);
+void tapi_set_offline_mode(uint8_t mode);
+void tapi_network_select(tapiNetSearchCnf* net_select);
+void tapi_network_reselect(uint8_t mode);
+void tapi_network_search(void);
+void tapi_set_selection_mode(uint8_t mode);
+void tapi_network_set_mode(uint32_t mode);
+void tapi_set_subscription_mode(uint8_t mode);
+
 void tapi_network_api_request(uint32_t tapiNetLength, uint8_t *tapiNetData);
 void tapi_network_startup(tapiStartupNetworkInfo* network_startup_info);
 void tapi_network_set_subscription_mode(uint32_t tapiNetLength, uint8_t *tapiNetData);
@@ -160,11 +172,5 @@ void tapi_network_network_select_ind(uint32_t tapiNetLength, uint8_t *tapiNetDat
 void tapi_network_common_error(uint32_t tapiNetLength, uint8_t *tapiNetData);
 void tapi_network_cell_info(uint32_t tapiNetLength, uint8_t *tapiNetData);
 void tapi_network_nitz_info_ind(uint32_t tapiNetLength, uint8_t *tapiNetData);
-
-void tapi_network_init(void);
-void tapi_set_subscription_mode(uint8_t mode);
-void tapi_network_set_mode(uint32_t mode);
-void tapi_set_offline_mode(uint8_t mode);
-void tapi_network_search(void);
 
 #endif

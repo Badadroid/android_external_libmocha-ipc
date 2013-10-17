@@ -138,6 +138,7 @@ struct ril_tokens {
 	RIL_Token dtmf_start;
 	RIL_Token dtmf_stop;
 	RIL_Token query_avail_networks;
+	RIL_Token network_selection;
 	RIL_Token setup_data_call;
 };
 
@@ -227,12 +228,18 @@ typedef struct ril_gprs_connection {
 	int thread_state;
 } ril_gprs_connection;
 
+typedef struct ril_net_select {
+	char * plmn;
+	tapiNetSearchCnf net_select_entry;
+} ril_net_select;
+
 struct ril_data {
 	struct RIL_Env *env;
 
 	struct ril_state state;
 	struct ril_tokens tokens;
 	struct list_head *gprs_connections;
+	struct list_head *net_select_list;
 	struct list_head *requests;
 	int request_id;
 	char smsc_number[30];
@@ -308,6 +315,9 @@ void ril_unsol_data_call_list_changed(RIL_Token t);
 void ril_request_data_call_list(RIL_Token t);
 
 /* NETWORK */
+int ril_net_select_register(char *plmn, tapiNetSearchCnf net_select_entry);
+void ril_net_select_unregister(void);
+struct ril_net_select *ril_net_select_find_plmn(char *plmn);
 int ipc2ril_net_mode(uint32_t mode);
 uint32_t ril2ipc_net_mode(int mode);
 void ipc_network_radio_info(void* data);
@@ -315,6 +325,7 @@ void ipc_network_select(void* data);
 void ipc_cell_info(void* data);
 void ipc_network_nitz_info(void* data);
 void ipc_network_search_cnf(void* data);
+void ipc_network_select_cnf(void* data);
 void network_start(void);
 void ril_request_operator(RIL_Token t);
 void ril_request_voice_registration_state(RIL_Token t);
@@ -322,6 +333,8 @@ void ril_request_data_registration_state(RIL_Token t);
 void ril_request_get_preferred_network_type(RIL_Token t);
 void ril_request_set_preferred_network_type(RIL_Token t, void *data, size_t datalen);
 void ril_request_query_available_networks(RIL_Token t);
+void ril_request_set_network_selection_automatic(RIL_Token t);
+void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t datalen);
 
 /* SIM */
 void ril_sim_init(void);

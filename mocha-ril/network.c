@@ -20,6 +20,7 @@
  */
  
 #define LOG_TAG "RIL-Mocha-NETWORK"
+#include <time.h>
 #include <utils/Log.h>
 
 #include "mocha-ril.h"
@@ -28,6 +29,67 @@
 #include <tapi_nettext.h>
 #include <sim.h>
 #include <proto.h>
+
+int ril_net_select_register(char *plmn, tapiNetSearchCnf net_select_entry)
+{
+	struct ril_net_select *net_select;
+	struct list_head *list_end;
+	struct list_head *list;
+
+	net_select = calloc(1, sizeof(struct ril_net_select));
+	if (net_select == NULL)
+		return -1;
+
+	net_select->plmn = plmn;
+	net_select->net_select_entry = net_select_entry;
+
+	ALOGE("%s: added plmn %s", __func__, net_select->plmn);
+
+	list_end = ril_data.net_select_list;
+	while (list_end != NULL && list_end->next != NULL)
+		list_end = list_end->next;
+
+	list = list_head_alloc((void *) net_select, list_end, NULL);
+
+	if (ril_data.net_select_list == NULL)
+		ril_data.net_select_list = list;
+
+	return 0;
+}
+
+void ril_net_select_unregister(void)
+{
+	struct list_head *list;
+
+	list = ril_data.net_select_list;
+	while (list != NULL) {
+		free(list->data);
+		ril_data.net_select_list = list->next;
+		list_head_free(list);
+		list = ril_data.net_select_list;
+	}
+}
+
+struct ril_net_select *ril_net_select_find_plmn(char *plmn)
+{
+	struct ril_net_select *net_select;
+	struct list_head *list;
+
+	list = ril_data.net_select_list;
+	while (list != NULL) {
+		net_select = (struct ril_net_select *) list->data;
+		if (net_select == NULL)
+			goto list_continue;
+
+		if (strcmp(net_select->plmn,plmn) == 0)
+			return net_select;
+
+list_continue:
+		list = list->next;
+	}
+
+	return NULL;
+}
 
 int ipc2ril_net_mode(uint32_t mode)
 {
@@ -146,6 +208,18 @@ void ipc_network_select(void* data)
 	strcpy(ril_data.state.SPN, netInfo->spn);
 	strcpy(ril_data.state.name, netInfo->name);
 
+	if (ril_data.tokens.network_selection != 0)
+	{
+		if (netInfo->serviceLevel == TAPI_SERVICE_LEVEL_FULL)
+		{
+			ril_request_complete(ril_data.tokens.network_selection, RIL_E_SUCCESS, NULL, 0);
+			ril_net_select_unregister();
+		}
+		else
+			ril_request_complete(ril_data.tokens.network_selection, RIL_E_ILLEGAL_SIM_OR_ME, NULL, 0);	
+		ril_data.tokens.network_selection = 0;
+	}
+
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 }
 
@@ -196,45 +270,102 @@ void ipc_network_nitz_info(void* data)
 
 void ipc_network_search_cnf(void* data)
 {
-	ALOGD("%s: Test me! ", __func__);
+	struct ril_net_select *net_select;
+	struct list_head *list;
 	char **response;
-	int length;
-	int count;
-	int index;
-	int i;
+	char *plmn;
+	int length, count, index;
+	unsigned int i, plmn_dec, num_entries;
 
+	num_entries = ((uint8_t *)data)[0];
 
-	int num_entries = ((uint8_t *)data)[0];
-
-	ALOGD("%s: Listed %d PLMNs\n", __func__, num_entries);
-	length = sizeof(char *) * 4 * num_entries;
-	response = (char **) calloc(1, length);
+	ALOGD("%s: Packet with %d entries\n", __func__, num_entries);
 	count = 0;
+
+	if (ril_data.net_select_list != NULL)
+	{
+		ALOGD("%s: List is not empty, cleaning...\n", __func__);
+		ril_net_select_unregister();
+	}
 
 	for (i = 0; i < num_entries; i++)
 	{
-		tapiNetSearchCnf* entry = (tapiNetSearchCnf *)(((uint8_t *)data) + (sizeof(tapiNetSearchCnf) * i + 4));
+		tapiNetSearchCnf *entry = (tapiNetSearchCnf *)(((uint8_t *)data) + (sizeof(tapiNetSearchCnf) * i + 4));
+
+		if (entry->MNC > 99)
+			plmn_dec = entry->MCC * 1000 + entry->MNC;
+		else
+			plmn_dec = entry->MCC * 100 + entry->MNC;
+
+		asprintf(&plmn, "%d", plmn_dec);
+
+		net_select = ril_net_select_find_plmn(plmn);
+
+		if (net_select)
+		{
+			if (net_select->net_select_entry.systemType < entry->systemType)
+				net_select->net_select_entry = *entry;
+		}
+		else
+		{
+			ril_net_select_register(plmn, *entry);
+			count++;
+		}
+	}
+	ALOGD("%s: List created with %d entries\n", __func__, count);
+
+	length = sizeof(char *) * 4 * count;
+	response = (char **) calloc(1, length);
+	count = 0;
+
+	list = ril_data.net_select_list;
+
+	while (list != NULL) {
+		net_select = (struct ril_net_select *) list->data;
+
+		if (net_select == NULL)
+			goto list_continue;
+
 		index = count * 4;
-		asprintf(&response[index], "%s", entry->name);
-		asprintf(&response[index + 1], "%s", entry->name);
-		asprintf(&response[index + 2], "%3d%2d", entry->MCC, entry->MNC);
-		if (entry->bForbidden)
+		asprintf(&response[index], "%s", net_select->net_select_entry.name);
+		asprintf(&response[index + 1], "%s", net_select->net_select_entry.name);
+		asprintf(&response[index + 2], "%s", net_select->plmn);
+		if (net_select->net_select_entry.bForbidden)
 			response[index + 3] = strdup("forbidden");
-		else if (entry->bCurrent)
+		else if (net_select->net_select_entry.bCurrent)
 			response[index + 3] = strdup("current");
-		else if (entry->bAvailable)
+		else if (net_select->net_select_entry.bAvailable)
 			response[index + 3] = strdup("available");
 		else
 			response[index + 3] = strdup("unknown");
 		count++;
+
+list_continue:
+		list = list->next;
 	}
 
 	ril_request_complete(ril_data.tokens.query_avail_networks, RIL_E_SUCCESS, response, length);
 
-	for (i = 0; i < num_entries ; i++) {
+	if (plmn != NULL)
+		free(plmn);
+
+	for (i = 0; i < length / sizeof(char *); i++) {
 		if (response[i] != NULL)
 			free(response[i]);
 	}
+}
+
+void ipc_network_select_cnf(void* data)
+{
+	tapiNetworkInfo* netInfo = (tapiNetworkInfo*)(data);
+	if (netInfo->serviceLevel == TAPI_SERVICE_LEVEL_FULL)
+	{
+		ril_request_complete(ril_data.tokens.network_selection, RIL_E_SUCCESS, NULL, 0);
+		ril_net_select_unregister();
+	}
+	else
+		ril_request_complete(ril_data.tokens.network_selection, RIL_E_ILLEGAL_SIM_OR_ME, NULL, 0);
+	ril_data.tokens.network_selection = 0;
 }
 
 void network_start(void)
@@ -379,15 +510,47 @@ void ril_request_set_preferred_network_type(RIL_Token t, void *data, size_t data
 	}
 
 	return;
-
 error:
-
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-
 }
 
 void ril_request_query_available_networks(RIL_Token t)
 {
+	tapi_set_selection_mode(1);
 	tapi_network_search();
 	ril_data.tokens.query_avail_networks = t;
+}
+
+void ril_request_set_network_selection_automatic(RIL_Token t)
+{
+	tapi_network_reselect(1);
+	tapi_set_selection_mode(0);
+	ril_data.tokens.network_selection = t;
+}
+
+void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t datalen)
+{
+	struct ril_net_select *net_select;
+
+	if (data == NULL || datalen < (int) sizeof(int))
+
+		goto error;
+
+
+	net_select = ril_net_select_find_plmn((char *)data);
+
+	if (!net_select) {
+		ALOGE("Unable to find network entry, aborting");
+		goto error;
+	}
+
+	ALOGE("%s: found plmn %s, type %d", __func__, net_select->plmn, net_select->net_select_entry.systemType);
+
+	tapi_network_select(&net_select->net_select_entry);
+
+	ril_data.tokens.network_selection = t;
+
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
