@@ -76,7 +76,7 @@ void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 		{
 		case 0x00:
 			DEBUG_I("SIM_PACKET OemSimAtkInjectDisplayTextInd rcvd");
-			
+
 			/*struct oemSimPacketHeader *oem_header;
 			struct oemSimPacket oem_packet;
 
@@ -120,9 +120,8 @@ void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 
 						break;
 					default:
-						sim_parse_event(sim_packet.simBuf, simHeader->bufLen); 
+						sim_parse_event(sim_packet.simBuf, simHeader->bufLen);
 						break;
-					
 				}
 			}
 		}
@@ -145,11 +144,10 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 	uint16_t current_simSomeType;
 	switch(simEvent->eventType)
 	{
-		
 		case SIM_EVENT_BEGIN:
 //			DEBUG_I("SIM_NOT_READY");			
-//			sim_status(1);	
-			break;		
+//			sim_status(1);
+			break;
 		case SIM_EVENT_SIM_OPEN:
 			if (simEvent->eventStatus == SIM_CARD_NOT_PRESENT) {
 				DEBUG_I("SIM_ABSENT");
@@ -181,16 +179,26 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			break;
 		case SIM_EVENT_VERIFY_CHV:
 			if (simEvent->eventStatus == SIM_OK) {
-				pin_status(buf + sizeof(simEventPacketHeader));
+				lock_status(buf + sizeof(simEventPacketHeader));
 			} else {
 				DEBUG_I("SIM: something wrong with pin verify responce");
 				DEBUG_I("SIM_PIN");
 				sim_status(3);
 			}
 			break;
+		case SIM_EVENT_DISABLE_CHV:
+			DEBUG_I("SIM_EVENT_DISABLE_CHV");
+			if (simEvent->eventStatus == SIM_OK)
+				lock_status(buf + sizeof(simEventPacketHeader));
+			break;
+		case SIM_EVENT_ENABLE_CHV:
+			DEBUG_I("SIM_EVENT_ENABLE_CHV");
+			if (simEvent->eventStatus == SIM_OK)
+				lock_status(buf + sizeof(simEventPacketHeader));
+			break;
 		case SIM_EVENT_UNBLOCK_CHV:
 			if (simEvent->eventStatus == SIM_OK) {
-				puk_status(buf + sizeof(simEventPacketHeader));
+				lock_status(buf + sizeof(simEventPacketHeader));
 			} else {
 				DEBUG_I("SIM: something wrong with puk verify responce");
 				DEBUG_I("SIM_PUK");
@@ -202,10 +210,10 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			memcpy(&current_simDataCount, (buf + 30), 4);
 			DEBUG_I("%s : current_simDataCount = 0x%x", __func__, current_simDataCount);
 			if(current_simDataCount > 0) 
-			{	
+			{
 				memcpy(&current_simSomeType, (buf + 26), 2);
 				DEBUG_I("%s : current_simSomeType = 0x%x", __func__, current_simSomeType);
-					
+
 				memcpy(&current_simDataType, (buf + 15), 2);
 				DEBUG_I("%s : current_simDataType = 0x%x", __func__, current_simDataType);
 
@@ -223,7 +231,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				sim_data.unk7 = 0x00;
 				sim_data.dataCounter = 0x01;
 				DEBUG_I("Sent SIM Request type = 0x%x, packet no. %d, total packets = %d\n", sim_data.simDataType, sim_data.dataCounter, current_simDataCount);
-				
+
 				sim_get_data_from_modem(0x5, &sim_data);
 			}
 			break;
@@ -246,15 +254,15 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 }
 
 void sim_send_oem_req(uint8_t* simBuf, uint8_t simBufLen)
-{	
+{
 	//simBuf is expected to contain full oemPacket structure
 	struct modem_io request;
-	struct simPacket sim_packet;	
+	struct simPacket sim_packet;
 	sim_packet.header.type = 0;
 	sim_packet.header.subType = ((struct oemSimPacketHeader *)(simBuf))->type;
 	sim_packet.header.bufLen = simBufLen;
 	sim_packet.simBuf = simBuf;
-	
+
 	uint32_t bufLen = sim_packet.header.bufLen + sizeof(struct simPacketHeader);
 	uint8_t* fifobuf = malloc(bufLen);
 	memcpy(fifobuf, &sim_packet.header, sizeof(struct simPacketHeader));
@@ -273,7 +281,7 @@ void sim_send_oem_req(uint8_t* simBuf, uint8_t simBufLen)
 }
 
 void sim_send_oem_data(uint8_t hSim, uint8_t packetType, uint8_t* dataBuf, uint32_t oemBufLen)
-{	
+{
 	SIM_VALIDATE_SID(hSim);
 
 	struct oemSimPacketHeader oem_header;	
@@ -293,8 +301,8 @@ void sim_send_oem_data(uint8_t hSim, uint8_t packetType, uint8_t* dataBuf, uint3
 }
 
 void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin)
-{	
-	uint8_t packetBuf[10];	
+{
+	uint8_t packetBuf[10];
 	SIM_VALIDATE_SID(hSim);
 	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
 	//TODO: if session is not busy, mark it busy
@@ -303,6 +311,32 @@ void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin)
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
 	sim_send_oem_data(hSim, SIM_EVENT_CHANGE_CHV, packetBuf, 10);
+}
+
+void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin)
+{
+	uint8_t packetBuf[10];
+	SIM_VALIDATE_SID(hSim);
+	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
+	//TODO: if session is not busy, mark it busy
+	memset(packetBuf, 0x00, 10);
+
+	packetBuf[0] = pinType;
+	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
+	sim_send_oem_data(hSim, SIM_EVENT_DISABLE_CHV, packetBuf, 10);
+}
+
+void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin)
+{
+	uint8_t packetBuf[10];
+	SIM_VALIDATE_SID(hSim);
+	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
+	//TODO: if session is not busy, mark it busy
+	memset(packetBuf, 0x00, 10);
+
+	packetBuf[0] = pinType;
+	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
+	sim_send_oem_data(hSim, SIM_EVENT_ENABLE_CHV, packetBuf, 10);
 }
 
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin)
@@ -335,7 +369,7 @@ void sim_open_to_modem(uint8_t hSim)
 }
 
 void sim_atk_send_packet(uint32_t atkType, uint32_t atkSubType, uint32_t atkBufLen, uint8_t* atkBuf)
-{	
+{
 	DEBUG_I("Sending sim_atk_send_packet\n");
 	struct modem_io request;
 	sim_atk_packet_header* atk_header;
@@ -368,16 +402,10 @@ void sim_status(int simCardStatus)
 	ipc_invoke_ril_cb(SIM_STATUS, (void*)simCardStatus);
 }
 
-void pin_status(uint8_t *lockStatus)
+void lock_status(uint8_t *lockStatus)
 {
-	DEBUG_I("PIN STATUS CHANGED");
-	ipc_invoke_ril_cb(PIN_STATUS, (void*)lockStatus);
-}
-
-void puk_status(uint8_t *lockStatus)
-{
-	DEBUG_I("PUK STATUS CHANGED");
-	ipc_invoke_ril_cb(PUK_STATUS, (void*)lockStatus);
+	DEBUG_I("LOCK STATUS CHANGED");
+	ipc_invoke_ril_cb(LOCK_STATUS, (void*)lockStatus);
 }
 
 void sim_get_data_from_modem(uint8_t hSim, sim_data_request *sim_data)

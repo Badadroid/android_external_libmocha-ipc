@@ -159,12 +159,13 @@ void sim_send_oem_data(uint8_t hSim, uint8_t packetType, uint8_t* dataBuf, uint3
 void sim_atk_send_packet(uint32_t atkType, uint32_t atkSubType, uint32_t atkBufLen, uint8_t* atkBuf);
 
 void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin);
+void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin);
+void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin);
 int sim_atk_open(void);
 void sim_open_to_modem(uint8_t hSim);
 void sim_status(int simCardStatus);
-void pin_status(uint8_t *lockStatus);
-void puk_status(uint8_t *lockStatus);
+void lock_status(uint8_t *lockStatus);
 
 void sim_get_data_from_modem(uint8_t hSim, sim_data_request *sim_data);
 void sim_data_request_to_modem(uint8_t hSim, uint16_t simDataType);

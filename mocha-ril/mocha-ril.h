@@ -140,6 +140,7 @@ struct ril_tokens {
 	RIL_Token query_avail_networks;
 	RIL_Token network_selection;
 	RIL_Token setup_data_call;
+	RIL_Token set_facility_lock;
 };
 
 void ril_tokens_check(void);
@@ -185,6 +186,7 @@ struct ril_state {
 	int act;
 	int ussd_state;
 	uint32_t net_mode;
+	int bPinLock;
 	int bAutoAttach;
 	uint32_t cell_id;
 	uint8_t rac_id;
@@ -344,13 +346,14 @@ void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t da
 /* SIM */
 void ril_sim_init(void);
 void ipc_sim_status(void *data);
-void ipc_pin_status(void* data);
-void ipc_puk_status(void* data);
+void ipc_lock_status(void* data);
 void ipc_sim_io_response(void* data);
 void ril_request_get_sim_status(RIL_Token t);
 void ril_state_update(ril_sim_state sim_state);
 void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen);
 void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
+void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen);
+void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen);
 
 /* SMS */
 void ipc_sms_send_status(void* data);

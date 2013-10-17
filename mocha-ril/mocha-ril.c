@@ -366,14 +366,13 @@ void ril_on_request(int request, void *data, size_t datalen, RIL_Token t)
 		case RIL_REQUEST_ENTER_SIM_PUK:
 			ril_request_enter_sim_puk(t, data, datalen);
 			break;
-#if 0
 		case RIL_REQUEST_QUERY_FACILITY_LOCK:
 			ril_request_query_facility_lock(t, data, datalen);
 			break;
 		case RIL_REQUEST_SET_FACILITY_LOCK:
 			ril_request_set_facility_lock(t, data, datalen);
 			break;
-#endif		/* NET */
+		/* NET */
 		case RIL_REQUEST_OPERATOR:
 			ril_request_operator(t);
 			break;
@@ -529,8 +528,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(CALL_ACTIVATE, ipc_call_activate);
 	ipc_register_ril_cb(CALL_ERROR, ipc_call_error);
 	ipc_register_ril_cb(SIM_STATUS, ipc_sim_status);
-	ipc_register_ril_cb(PIN_STATUS, ipc_pin_status);
-	ipc_register_ril_cb(PUK_STATUS, ipc_puk_status);
+	ipc_register_ril_cb(LOCK_STATUS, ipc_lock_status);
 	ipc_register_ril_cb(NETTEXT_INCOMING, ipc_incoming_sms);
 	ipc_register_ril_cb(NETTEXT_SEND_CALLBACK, ipc_sms_send_status);
 	ipc_register_ril_cb(SIM_IO_RESPONSE, ipc_sim_io_response);
@@ -551,6 +549,9 @@ void ril_data_init(void)
 	ril_data.outDevice = SND_OUTPUT_EARPIECE;
 	ril_data.data_call_count = 0;
 	ril_data.tokens.network_selection = 0;
+	ril_data.tokens.set_facility_lock = 0;
+	ril_data.tokens.pin_status = 0;
+	ril_data.state.bPinLock = 0;
 	//FIXME: Add reading from file
 	ril_data.state.bAutoAttach = 1;
 }

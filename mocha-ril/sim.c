@@ -45,6 +45,9 @@ void ipc_sim_status(void *data)
 	/* Update radio state based on SIM state */
 	ril_state_update(sim_state);
 
+	if (sim_state == SIM_STATE_PIN)
+		ril_data.state.bPinLock = 1;
+
 	if (sim_state == SIM_STATE_READY && ril_data.smsc_number[0] == 0)
 		//request SMSC number
 		sim_data_request_to_modem(4, 0x6f42);
@@ -53,7 +56,7 @@ void ipc_sim_status(void *data)
 
 }
 
-void ipc_pin_status(void* data)
+void ipc_lock_status(void* data)
 {
 	ALOGE("%s: test me!", __func__);
 	lockStatus* pinSt = (lockStatus*)(data);
@@ -61,46 +64,46 @@ void ipc_pin_status(void* data)
 	switch(pinSt->status){
 		case 0:
 			DEBUG_I("%s : Correct password ", __func__);
-			ril_request_complete(ril_data.tokens.pin_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
-			DEBUG_I("SIM_READY");
-			sim_status(2);
+			if (ril_data.tokens.set_facility_lock != 0)
+				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.pin_status != 0)
+			{
+				ril_request_complete(ril_data.tokens.pin_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+				DEBUG_I("SIM_READY");
+				sim_status(2);
+			}
+			else
+			{
+				ril_request_complete(ril_data.tokens.puk_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+				DEBUG_I("SIM_READY");
+				sim_status(2);
+			}
 			return;
 		case 1:
 			DEBUG_I("%s : Wrong password ", __func__);
 			attempts = pinSt->attempts;
-			ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			if (ril_data.tokens.set_facility_lock != 0)
+				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.pin_status != 0)
+				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			else
+				ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
 			return;
 		case 2:
 			DEBUG_I("%s : Wrong password and no attempts left!", __func__);
 			attempts = 0;
-			ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-			sim_status(4);
-			return;
-	}
-}
-
-void ipc_puk_status(void* data)
-{
-	ALOGE("%s: test me!", __func__);
-	lockStatus* pukSt = (lockStatus*)(data);
-	int attempts = -1;
-	switch(pukSt->status){
-		case 0:
-			DEBUG_I("%s : Correct password ", __func__);
-			ril_request_complete(ril_data.tokens.puk_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
-			DEBUG_I("SIM_READY");
-			sim_status(2);
-			return;
-		case 1:
-			DEBUG_I("%s : Wrong password ", __func__);
-			attempts = pukSt->attempts;
-			ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-			return;
-		case 2:
-			DEBUG_I("%s : Wrong password and no attempts left!", __func__);
-			attempts = 0;
-			ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-			sim_status(5);
+			if (ril_data.tokens.set_facility_lock != 0)
+				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+			else if (ril_data.tokens.pin_status != 0)
+			{
+				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				sim_status(4);
+			}
+			else
+			{
+				ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				sim_status(5);
+			}
 			return;
 	}
 }
@@ -291,6 +294,65 @@ void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen)
 	sim_unblock_chv(0x4, 0x2, puk, pin);
 	ril_data.tokens.puk_status = t;
 
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+}
+
+void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen)
+{
+	char *facility;
+
+	if (data == NULL || datalen < sizeof(char *))
+		goto error;
+
+	facility = ((char **) data)[0];
+
+	if (!strcmp(facility, "SC")) {
+		ril_request_complete(t, RIL_E_SUCCESS, &ril_data.state.bPinLock, sizeof(int));
+	} else {
+	ALOGE("%s: unsupported facility: %s", __func__, facility);
+		goto error;
+	}
+	return;
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+}
+void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen)
+{
+	ALOGE("%s: test me!", __func__);
+
+	char *facility;
+	char *lock;
+	char *password;
+
+	if (data == NULL || datalen < (int) (4 * sizeof(char *)))
+		goto error;
+
+	facility = ((char **) data)[0];
+	lock = ((char **) data)[1];
+	password = ((char **) data)[2];
+
+	if (!strcmp(facility, "SC")) {
+		if (!strcmp(lock, "1"))
+		{
+		ALOGE("%s: Request for enabling PIN", __func__);
+			//enable PIN lock
+			sim_disable_chv(0x4, 0x0, password);
+		}
+		else if (!strcmp(lock, "0"))
+		{
+		ALOGE("%s: Request for disabling PIN", __func__);
+			//disable PIN Lock
+			sim_enable_chv(0x4, 0x0, password);
+		}
+	}
+	else
+	{
+		ALOGE("%s: unsupported facility: %s", __func__, facility);
+		goto error;
+	}
+	ril_data.tokens.set_facility_lock = t;
 	return;
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
