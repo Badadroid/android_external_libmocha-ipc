@@ -87,50 +87,88 @@ void ipc_lock_status(void* data)
 		case 0:
 			DEBUG_I("%s : Correct password ", __func__);
 			if (ril_data.tokens.set_facility_lock != 0)
+			{
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+				ril_data.tokens.set_facility_lock = 0;
+			}
 			else if (ril_data.tokens.change_sim_pin != 0)
+			{
 				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+				ril_data.tokens.change_sim_pin = 0;
+			}
 			else if (ril_data.tokens.pin_status != 0)
 			{
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
-				DEBUG_I("SIM_READY");
-				sim_status(2);
+				ril_data.tokens.pin_status = 0;
+				sim_send_oem_data(0x4, SIM_EVENT_VERIFY_PIN1_IND, NULL, 0);
+			}
+			else if(ril_data.tokens.puk_status != 0)
+			{
+				ril_request_complete(ril_data.tokens.puk_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
+				ril_data.tokens.puk_status = 0;
+				sim_send_oem_data(0x4, SIM_EVENT_VERIFY_PIN1_IND, NULL, 0);
 			}
 			else
 			{
-				ril_request_complete(ril_data.tokens.puk_status, RIL_E_SUCCESS, &attempts, sizeof(attempts));
-				DEBUG_I("SIM_READY");
-				sim_status(2);
+				ALOGE("%s: Received correct password info but no CHV token is active.", __func__);
 			}
 			return;
 		case 1:
 			DEBUG_I("%s : Wrong password ", __func__);
 			attempts = pinSt->attempts;
 			if (ril_data.tokens.set_facility_lock != 0)
+			{
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				ril_data.tokens.set_facility_lock = 0;
+			}
 			else if (ril_data.tokens.change_sim_pin != 0)
+			{
 				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				ril_data.tokens.change_sim_pin = 0;
+			}
 			else if (ril_data.tokens.pin_status != 0)
+			{
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-			else
+				ril_data.tokens.pin_status = 0;
+			}
+			else if(ril_data.tokens.puk_status != 0)
+			{
 				ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				ril_data.tokens.puk_status = 0;
+			}
+			else
+			{
+				ALOGE("%s: Received wrong password info but no CHV token is active.", __func__);
+			}
 			return;
 		case 2:
 			DEBUG_I("%s : Wrong password and no attempts left!", __func__);
 			attempts = 0;
 			if (ril_data.tokens.set_facility_lock != 0)
+			{
 				ril_request_complete(ril_data.tokens.set_facility_lock, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				ril_data.tokens.set_facility_lock = 0;
+			}
 			else if (ril_data.tokens.change_sim_pin != 0)
+			{
 				ril_request_complete(ril_data.tokens.change_sim_pin, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				ril_data.tokens.change_sim_pin = 0;
+			}
 			else if (ril_data.tokens.pin_status != 0)
 			{
 				ril_request_complete(ril_data.tokens.pin_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-				sim_status(4);
+				sim_status(SIM_STATE_PUK);
+				ril_data.tokens.pin_status = 0;
+			}
+			else if(ril_data.tokens.puk_status != 0)
+			{
+				ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
+				sim_status(SIM_STATE_BLOCKED);
+				ril_data.tokens.puk_status = 0;
 			}
 			else
 			{
-				ril_request_complete(ril_data.tokens.puk_status, RIL_E_PASSWORD_INCORRECT, &attempts, sizeof(attempts));
-				sim_status(5);
+				ALOGE("%s: Received no attempts left info but no CHV token is active.", __func__);
 			}
 			return;
 	}

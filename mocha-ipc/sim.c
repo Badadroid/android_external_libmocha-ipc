@@ -149,6 +149,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 //			sim_status(SIM_STATE_NOT_READY);
 			break;
 		case SIM_EVENT_SIM_OPEN:
+		case SIM_EVENT_GET_SIM_OPEN_DATA:
 			DEBUG_I("SIM_OPEN");
 			ipc_invoke_ril_cb(SIM_OPEN, (void*)buf);
 			break;
@@ -166,7 +167,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			if (simEvent->eventStatus == SIM_OK) {
 				lock_status(buf + sizeof(simEventPacketHeader));
 			} else {
-				DEBUG_I("SIM: something wrong with pin verify responce");
+				DEBUG_I("SIM: something wrong with pin verify response");
 				DEBUG_I("SIM_PIN");
 				sim_status(SIM_STATE_PIN);
 			}
@@ -185,7 +186,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			if (simEvent->eventStatus == SIM_OK) {
 				lock_status(buf + sizeof(simEventPacketHeader));
 			} else {
-				DEBUG_I("SIM: something wrong with puk verify responce");
+				DEBUG_I("SIM: something wrong with puk verify response");
 				DEBUG_I("SIM_PUK");
 				sim_status(SIM_STATE_PUK);
 			}
