@@ -73,6 +73,7 @@ void ril_request_get_imsi(RIL_Token t)
 {
 	if (ril_data.cached_imsi[0] != 0x00) {
 		ril_request_complete(t, RIL_E_SUCCESS, ril_data.cached_imsi, sizeof(ril_data.cached_imsi));
+		ril_data.tokens.get_imsi = 0;
 	} else {
 		ALOGD("%s: Not ready yet, queuing token!", __func__);
 		ril_data.tokens.get_imsi = t;

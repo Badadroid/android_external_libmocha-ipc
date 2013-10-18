@@ -268,6 +268,12 @@ void ril_tokens_check(void)
 			ril_data.tokens.get_imei = 0;
 		}
 	}
+	if(ril_data.tokens.get_imsi != 0) {
+		if (ril_data.cached_imsi[0] != 0x00) {
+			ril_request_get_imsi(ril_data.tokens.get_imsi);
+			ril_data.tokens.get_imsi = 0;
+		}
+	}
 }
 
 void srs_dispatch(struct srs_message *message)
@@ -555,7 +561,9 @@ void ril_data_init(void)
 	ril_data.tokens.network_selection = 0;
 	ril_data.tokens.set_facility_lock = 0;
 	ril_data.tokens.pin_status = 0;
+	ril_data.tokens.puk_status = 0;
 	ril_data.tokens.change_sim_pin = 0;
+	ril_data.tokens.get_imsi = 0;
 	ril_data.state.bPinLock = 0;
 	//FIXME: Add reading from file
 	ril_data.state.bAutoAttach = 1;
