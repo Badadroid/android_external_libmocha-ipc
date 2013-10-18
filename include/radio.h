@@ -73,6 +73,7 @@ enum ipc_ril_cb_type {
     CALL_ERROR,
     NETTEXT_INCOMING,
     NETTEXT_SEND_CALLBACK,
+    SIM_OPEN,
     SIM_STATUS,
     LOCK_STATUS,
     SIM_IO_RESPONSE,
@@ -84,11 +85,21 @@ enum ipc_ril_cb_type {
 	IPC_RIL_CB_LAST
 };
 
+typedef enum {
+	SIM_STATE_ABSENT			= 0,
+	SIM_STATE_NOT_READY			= 1,
+	SIM_STATE_READY				= 2,
+	SIM_STATE_PIN				= 3,
+	SIM_STATE_PUK				= 4,
+	SIM_STATE_BLOCKED			= 5,
+	SIM_STATE_NETWORK_PERSO 		= 6,
+	SIM_STATE_NETWORK_SUBSET_PERSO		= 7,
+	SIM_STATE_CORPORATE_PERSO		= 8,
+	SIM_STATE_SERVICE_PROVIDER_PERSO	= 9,
+} ril_sim_state;
+
 extern uint8_t cached_bcd_imei[9];
 extern char cached_imei[33];
-extern uint8_t cached_bcd_imsi[9];
-extern char cached_imsi[33];
-extern char cached_sw_version[33];
 extern char* fake_apps_version;
 
 typedef void (*ipc_ril_cb)(void* data);

@@ -88,7 +88,7 @@ typedef struct  {
 	uint32_t sid;
 	uint8_t eventType;
 	uint8_t eventStatus;
-	uint8_t unused; //does always(appearantly) match subtype
+	uint8_t unused; //does always(apparently) match subtype
 	uint32_t bufLen;
 } __attribute__((__packed__)) simEventPacketHeader;
 

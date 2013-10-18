@@ -530,6 +530,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(CALL_SWAP, ipc_call_swap);
 	ipc_register_ril_cb(CALL_ACTIVATE, ipc_call_activate);
 	ipc_register_ril_cb(CALL_ERROR, ipc_call_error);
+	ipc_register_ril_cb(SIM_OPEN, ipc_sim_open);
 	ipc_register_ril_cb(SIM_STATUS, ipc_sim_status);
 	ipc_register_ril_cb(LOCK_STATUS, ipc_lock_status);
 	ipc_register_ril_cb(NETTEXT_INCOMING, ipc_incoming_sms);

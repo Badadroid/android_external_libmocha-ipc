@@ -25,7 +25,6 @@
 #include "util.h"
 #include <sound.h>
 
-
 void ril_request_set_mute(RIL_Token t, void *data, size_t datalen)
 {
 	unsigned char mute_data = ((int *)data)[0] > 0 ? 1 : 0;

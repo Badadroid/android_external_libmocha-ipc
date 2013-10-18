@@ -146,35 +146,20 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 	{
 		case SIM_EVENT_BEGIN:
 //			DEBUG_I("SIM_NOT_READY");			
-//			sim_status(1);
+//			sim_status(SIM_STATE_NOT_READY);
 			break;
 		case SIM_EVENT_SIM_OPEN:
-			if (simEvent->eventStatus == SIM_CARD_NOT_PRESENT) {
-				DEBUG_I("SIM_ABSENT");
-				sim_status(0);
-			}
-			if (simEvent->eventStatus == SIM_OK) {
-				DEBUG_I("SIM_READY");
-				sim_status(2);
-			}
-			/* copying IMSI in BCD format from sim packet */
-			int imsi_len = buf[0xAE];
-			int i = 0;
-			for (i = 0; i < imsi_len; i++)
-				cached_bcd_imsi[i] = buf[i+0xB2];
-			/*Converting IMSI out of dat stuff to ASCII*/
-			imsi_bcd2ascii(cached_imsi, cached_bcd_imsi, imsi_len);
-			/* Clean print of IMSI*/
-			memset(buf + 0xAF, 0, 15);
+			DEBUG_I("SIM_OPEN");
+			ipc_invoke_ril_cb(SIM_OPEN, (void*)buf);
 			break;
 		case SIM_EVENT_VERIFY_PIN1_IND:
 			if (buf[sizeof(simEventPacketHeader)] == 3)
 			{
 				DEBUG_I("SIM_PUK");
-				sim_status(4);
+				sim_status(SIM_STATE_PUK);
 			} else {
 				DEBUG_I("SIM_PIN");
-				sim_status(3);
+				sim_status(SIM_STATE_PIN);
 			}
 			break;
 		case SIM_EVENT_VERIFY_CHV:
@@ -183,7 +168,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			} else {
 				DEBUG_I("SIM: something wrong with pin verify responce");
 				DEBUG_I("SIM_PIN");
-				sim_status(3);
+				sim_status(SIM_STATE_PIN);
 			}
 			break;
 		case SIM_EVENT_DISABLE_CHV:
@@ -202,7 +187,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			} else {
 				DEBUG_I("SIM: something wrong with puk verify responce");
 				DEBUG_I("SIM_PUK");
-				sim_status(4);
+				sim_status(SIM_STATE_PUK);
 			}
 			break;
 		case SIM_EVENT_FILE_INFO:

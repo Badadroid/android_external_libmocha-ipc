@@ -32,20 +32,18 @@ void ril_request_get_imei(RIL_Token t)
 	if(cached_imei[0] != 0x00) {
 		ril_request_complete(t, RIL_E_SUCCESS, cached_imei, sizeof(cached_imei));
 	} else {
-		ALOGE("%s: Error!", __func__);
-		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		ALOGD("%s: Not ready yet, queuing token!", __func__);
+		ril_data.tokens.get_imei = t;
 	}
 }
 
-
 void ril_request_baseband_version(RIL_Token t)
 {
-
-	if(ril_data.state.radio_state != RADIO_STATE_OFF) {	
-		ril_request_complete(t, RIL_E_SUCCESS, cached_sw_version, sizeof(cached_sw_version));
+	if(ril_data.cached_sw_version[0] != 0x00) {
+		ril_request_complete(t, RIL_E_SUCCESS, ril_data.cached_sw_version, sizeof(ril_data.cached_sw_version));
 	} else {
-		ALOGE("%s: Error!", __func__);
-		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		ALOGD("%s: Not ready yet, queuing token!", __func__);
+		ril_data.tokens.baseband_version = t;
 	}
 }
 
@@ -59,10 +57,7 @@ void ril_request_screen_state(RIL_Token t, void *data, size_t datalen)
 	else
 		drv_send_packet(BATT_GAUGE_STATUS_REQ, (uint8_t*)&status, 4);
 		ipc_power_mode(6);
-
-
 	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
-
 }
 
 
@@ -76,10 +71,10 @@ void ril_request_screen_state(RIL_Token t, void *data, size_t datalen)
  */
 void ril_request_get_imsi(RIL_Token t)
 {
-	if (cached_imsi[0] != 0x00) {
-		ril_request_complete(t, RIL_E_SUCCESS, cached_imsi, sizeof(cached_imsi));
+	if (ril_data.cached_imsi[0] != 0x00) {
+		ril_request_complete(t, RIL_E_SUCCESS, ril_data.cached_imsi, sizeof(ril_data.cached_imsi));
 	} else {
-		ALOGE("%s: Error!", __func__);
-		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		ALOGD("%s: Not ready yet, queuing token!", __func__);
+		ril_data.tokens.get_imsi = t;
 	}
 }

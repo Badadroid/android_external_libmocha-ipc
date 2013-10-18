@@ -131,6 +131,7 @@ struct ril_tokens {
 	RIL_Token pin_status;
 	RIL_Token puk_status;
 	RIL_Token get_imei;
+	RIL_Token get_imsi;
 	RIL_Token get_imeisv;
 	RIL_Token baseband_version;
 	RIL_Token operator;
@@ -156,19 +157,6 @@ void ril_tokens_check(void);
 	POWER_STATE_NORMAL               = 2,
 	POWER_STATE_SIM_INIT_COMPLETE    = 4,
 } modem_power_state;
-
-typedef enum {
-	SIM_STATE_ABSENT			= 0,
-	SIM_STATE_NOT_READY			= 1,
-	SIM_STATE_READY				= 2,
-	SIM_STATE_PIN				= 3,
-	SIM_STATE_PUK				= 4,
-	SIM_STATE_BLOCKED			= 5,
-	SIM_STATE_NETWORK_PERSO 		= 6,
-	SIM_STATE_NETWORK_SUBSET_PERSO		= 7,
-	SIM_STATE_CORPORATE_PERSO		= 8,
-	SIM_STATE_SERVICE_PROVIDER_PERSO	= 9,
-} ril_sim_state;
 
 typedef enum {
 	USSD_NO_ACTION_REQUIRE 			= 0,
@@ -245,6 +233,11 @@ struct ril_data {
 	struct list_head *gprs_connections;
 	struct list_head *net_select_list;
 	struct list_head *requests;
+
+	
+	char cached_sw_version[33];
+	uint8_t cached_bcd_imsi[9];
+	char cached_imsi[33];
 
 	int request_id;
 	char smsc_number[30];
@@ -346,6 +339,7 @@ void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t da
 
 /* SIM */
 void ril_sim_init(void);
+void ipc_sim_open(void *data);
 void ipc_sim_status(void *data);
 void ipc_lock_status(void* data);
 void ipc_sim_io_response(void* data);

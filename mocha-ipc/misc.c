@@ -112,20 +112,7 @@ void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame)
 void ipc_parse_system(struct ipc_client *client, struct modem_io *ipc_frame)
 {
 	DEBUG_I("received SYSTEM packet with AMSS version, notifying RIL that AMSS has initialized");
-	uint32_t desc_size;
-	int suffix_size;
-	desc_size = strlen((const char*)ipc_frame->data);
-	if(desc_size > 32 || desc_size > ipc_frame->datasize)
-		DEBUG_E("too big desc_size: %d", desc_size);
-	else
-		memcpy(cached_sw_version, ipc_frame->data, desc_size);
-	cached_sw_version[desc_size] = 0x00;
-	suffix_size = ipc_frame->datasize - desc_size - 1;
-	if(suffix_size > 0) {
-		DEBUG_I("dumping rest of data from IPC_SYSTEM packet");
-		ipc_hex_dump(client, ipc_frame->data+desc_size+1, suffix_size);
-	}
-	ipc_invoke_ril_cb(CP_SYSTEM_START, ipc_frame->data);
+	ipc_invoke_ril_cb(CP_SYSTEM_START, ipc_frame);
 }
 
 void ipc_parse_dbg(struct ipc_client *client, struct modem_io *ipc_frame)

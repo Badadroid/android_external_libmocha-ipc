@@ -51,9 +51,6 @@ ipc_ril_cb ipc_ril_cb_map[IPC_RIL_CB_LAST];
 
 uint8_t cached_bcd_imei[9];
 char cached_imei[33];
-uint8_t cached_bcd_imsi[9];
-char cached_imsi[33];
-char cached_sw_version[33];
 
 extern void jet_ipc_register();
 extern void wave_ipc_register();
@@ -61,6 +58,8 @@ extern void wave_ipc_register();
 void ipc_init(void)
 {
 	int i;
+	memset(cached_bcd_imei, 0, sizeof(cached_bcd_imei));
+	memset(cached_imei, 0, sizeof(cached_imei));
 #if defined(DEVICE_JET)
     jet_ipc_register();
 #elif defined(DEVICE_WAVE)

@@ -34,12 +34,27 @@
 #include "util.h"
 
 void ipc_cp_system_start(void* data)
-{	
+{
+	struct modem_io *ipc_frame = (struct modem_io*) data; 
+	uint32_t desc_size;
+	int suffix_size;
 	/*  
 	* It's not ON yet but AMSS is able to serve most of IPC request already
 	*/
 	ril_data.state.power_state = POWER_STATE_LPM;
 	ril_data.state.radio_state = RADIO_STATE_OFF;
+
+	desc_size = strlen((const char*)ipc_frame->data);
+	if(desc_size > 32 || desc_size > ipc_frame->datasize)
+		DEBUG_E("too big desc_size: %d", desc_size);
+	else
+		memcpy(ril_data.cached_sw_version, ipc_frame->data, desc_size);
+	ril_data.cached_sw_version[desc_size] = 0x00;
+	suffix_size = ipc_frame->datasize - desc_size - 1;
+	if(suffix_size > 0) {
+		DEBUG_I("dumping rest of data from IPC_SYSTEM packet");
+		hex_dump(ipc_frame->data+desc_size+1, suffix_size);
+	}
 
 	tapi_init();
 	proto_startup();
@@ -75,6 +90,7 @@ void ril_request_radio_power(RIL_Token t, void *data, size_t datalen)
 	} else {	
 		ALOGD("Request power to NORMAL");
 		tapi_set_offline_mode(TAPI_NETWORK_OFFLINE_MODE_OFF);
+		/* This is an utterly ugly hack-around */
 		ril_data.state.power_state = POWER_STATE_NORMAL;
 		ril_data.state.radio_state = RADIO_STATE_ON;
 		network_start();

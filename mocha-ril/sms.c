@@ -56,7 +56,6 @@ void ipc_sms_send_status(void* data)
 			ril_request_complete(ril_data.tokens.outgoing_sms, RIL_E_GENERIC_FAILURE, &response, sizeof(response));
 			return;
 	}
-
 }
 
 /**
