@@ -340,6 +340,12 @@ void ipc_network_search_cnf(void* data)
 	}
 	ALOGD("%s: List created with %d entries\n", __func__, count);
 
+	if (count == 0)
+	{
+		ril_request_complete(ril_data.tokens.query_avail_networks, RIL_E_SUCCESS, NULL, 0);
+		return;
+	}
+
 	length = sizeof(char *) * 4 * count;
 	response = (char **) calloc(1, length);
 	count = 0;
