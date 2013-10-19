@@ -557,14 +557,6 @@ void ril_data_init(void)
 	ril_data.state.sim_state = SIM_STATE_NOT_READY;
 	ril_data.inDevice = SND_INPUT_MAIN_MIC;
 	ril_data.outDevice = SND_OUTPUT_EARPIECE;
-	ril_data.data_call_count = 0;
-	ril_data.tokens.network_selection = 0;
-	ril_data.tokens.set_facility_lock = 0;
-	ril_data.tokens.pin_status = 0;
-	ril_data.tokens.puk_status = 0;
-	ril_data.tokens.change_sim_pin = 0;
-	ril_data.tokens.get_imsi = 0;
-	ril_data.state.bPinLock = 0;
 	//FIXME: Add reading from file
 	ril_data.state.bAutoAttach = 1;
 }
