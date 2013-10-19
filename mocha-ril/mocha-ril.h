@@ -176,7 +176,6 @@ struct ril_state {
 	int ussd_state;
 	uint32_t net_mode;
 	int bPinLock;
-	int bAutoAttach;
 	uint32_t cell_id;
 	uint8_t rac_id;
 	uint16_t lac_id;
@@ -186,6 +185,10 @@ struct ril_state {
 	char name[NET_MAX_NAME_LEN];
 	unsigned char dtmf_tone;
 };
+
+typedef struct ril_config {
+	uint32_t bAutoAttach;
+} ril_config;
 
 void ril_state_lpm(void);
 
@@ -230,11 +233,11 @@ struct ril_data {
 
 	struct ril_state state;
 	struct ril_tokens tokens;
+	ril_config config;
 	struct list_head *gprs_connections;
 	struct list_head *net_select_list;
 	struct list_head *requests;
 
-	
 	char cached_sw_version[33];
 	uint8_t cached_bcd_imsi[9];
 	char cached_imsi[33];

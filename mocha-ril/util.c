@@ -28,12 +28,15 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #define LOG_TAG "RIL-Mocha-UTIL"
 #include <utils/Log.h>
 #include "util.h"
 
 #include "mocha-ril.h"
+
+#define RIL_CONFIG_PATH "/data/radio/ril_config.bin"
 
 /**
  * List
@@ -409,4 +412,53 @@ int tun_alloc(char *dev, int flags)
 	/* this is the special file descriptor that the caller will use to talk
 	* with the virtual interface */
 	return fd;
+}
+
+void load_default_ril_config()
+{
+	ril_data.config.bAutoAttach = 1;
+}
+
+/* Return 0 in case of success, non-zero in case of failure */
+int load_ril_config()
+{
+	int fd, n;
+	load_default_ril_config();
+
+	if( (fd = open(RIL_CONFIG_PATH, O_RDONLY)) < 0 ) {
+		return fd;
+	}
+
+	n = read(fd, &ril_data.config, sizeof(ril_config));
+	if(n != sizeof(ril_config))
+		goto error;
+	ALOGD("%s: Read %d bytes from %s", __func__, n, RIL_CONFIG_PATH);
+	close(fd);
+	return 0;
+error:
+	ALOGE("%s: Read only %d of %d bytes from %s", __func__, n, sizeof(ril_config), RIL_CONFIG_PATH);
+	close(fd);
+	return -1;
+}
+
+/* Return 0 in case of success, non-zero in case of failure */
+int save_ril_config()
+{
+	int fd, n;
+
+	if( (fd = open(RIL_CONFIG_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0x644)) < 0 ) {
+		ALOGE("%s: Couldn't open %s for writing, errno: %d", __func__, RIL_CONFIG_PATH, errno);
+		return fd;
+	}
+
+	n = write(fd, &ril_data.config, sizeof(ril_config));
+	if(n != sizeof(ril_config))
+		goto error;
+	ALOGD("%s: Written %d bytes to %s", __func__, n, RIL_CONFIG_PATH);
+	close(fd);
+	return 0;
+error:
+	ALOGE("%s: Wrote only %d of %d bytes to %s", __func__, n, sizeof(ril_config), RIL_CONFIG_PATH);
+	close(fd);
+	return -1;
 }

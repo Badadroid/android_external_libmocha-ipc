@@ -28,6 +28,12 @@ struct list_head {
 	void *data;
 };
 
+typedef enum {
+	SMS_CODING_SCHEME_UNKNOWN = 0,
+	SMS_CODING_SCHEME_GSM7,
+	SMS_CODING_SCHEME_UCS2
+} SmsCodingScheme;
+
 struct list_head *list_head_alloc(void *data, struct list_head *prev, struct list_head *next);
 void list_head_free(struct list_head *list);
 
@@ -37,14 +43,11 @@ int gsm72ascii(unsigned char *data, char **data_dec, int length);
 int ascii2gsm7(char *data, unsigned char **data_enc, int length);
 void hex_dump(void *data, int size);
 int utf8_write(char *utf8, int offset, int v);
-int tun_alloc(char *dev, int flags);
-
-typedef enum {
-	SMS_CODING_SCHEME_UNKNOWN = 0,
-	SMS_CODING_SCHEME_GSM7,
-	SMS_CODING_SCHEME_UCS2
-} SmsCodingScheme;
 
 SmsCodingScheme sms_get_coding_scheme(int dataCoding);
+int tun_alloc(char *dev, int flags);
+void load_default_ril_config(void);
+int load_ril_config(void);
+int save_ril_config(void);
 
 #endif

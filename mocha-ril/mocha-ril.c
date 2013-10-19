@@ -557,8 +557,7 @@ void ril_data_init(void)
 	ril_data.state.sim_state = SIM_STATE_NOT_READY;
 	ril_data.inDevice = SND_INPUT_MAIN_MIC;
 	ril_data.outDevice = SND_OUTPUT_EARPIECE;
-	//FIXME: Add reading from file
-	ril_data.state.bAutoAttach = 1;
+	load_ril_config();
 }
 
 /**

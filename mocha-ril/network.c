@@ -397,7 +397,7 @@ void ipc_network_select_cnf(void* data)
 void network_start(void)
 {
 	tapiStartupNetworkInfo start_info;
-	start_info.bAutoSelection = ril_data.state.bAutoAttach;
+	start_info.bAutoSelection = ril_data.config.bAutoAttach;
 	start_info.bPoweronGprsAttach = 1;
 	start_info.networkOrder = 1;
 	start_info.serviceDomain = 0;
@@ -551,7 +551,7 @@ void ril_request_query_network_selection_mode(RIL_Token t)
 {
 	int ril_mode;
 
-	ril_mode = ipc2ril_plmn_sel(ril_data.state.bAutoAttach);
+	ril_mode = ipc2ril_plmn_sel(ril_data.config.bAutoAttach);
 
 	ril_request_complete(t, RIL_E_SUCCESS, &ril_mode, sizeof(ril_mode));
 }
@@ -562,8 +562,8 @@ void ril_request_set_network_selection_automatic(RIL_Token t)
 	tapi_set_selection_mode(0);
 	ril_data.tokens.network_selection = t;
 
-	//FIXME: Add write to file
-	ril_data.state.bAutoAttach = TAPI_NETWORK_SELECTION_AUTO;
+	ril_data.config.bAutoAttach = TAPI_NETWORK_SELECTION_AUTO;
+	save_ril_config();
 
 }
 
@@ -589,8 +589,8 @@ void ril_request_set_network_selection_manual(RIL_Token t, void *data, size_t da
 
 	ril_data.tokens.network_selection = t;
 
-	//FIXME: Add write to file
-	ril_data.state.bAutoAttach = TAPI_NETWORK_SELECTION_MANUAL;
+	ril_data.config.bAutoAttach = TAPI_NETWORK_SELECTION_MANUAL;
+	save_ril_config();
 
 	return;
 error:
