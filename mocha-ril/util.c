@@ -446,7 +446,7 @@ int save_ril_config()
 {
 	int fd, n;
 
-	if( (fd = open(RIL_CONFIG_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0660|0660|0660)) < 0 ) {
+	if( (fd = open(RIL_CONFIG_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0 ) {
 		ALOGE("%s: Couldn't open %s for writing, errno: %d", __func__, RIL_CONFIG_PATH, errno);
 		return fd;
 	}
