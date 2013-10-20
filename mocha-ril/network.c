@@ -59,11 +59,14 @@ int ril_net_select_register(char *plmn, tapiNetSearchCnf net_select_entry)
 
 void ril_net_select_unregister(void)
 {
+	struct ril_net_select *net_select;
 	struct list_head *list;
 
 	list = ril_data.net_select_list;
 	while (list != NULL) {
-		free(list->data);
+		net_select = (struct ril_net_select *)list->data;
+		free(net_select->plmn);
+		free(net_select);
 		ril_data.net_select_list = list->next;
 		list_head_free(list);
 		list = ril_data.net_select_list;
@@ -329,6 +332,7 @@ void ipc_network_search_cnf(void* data)
 
 		if (net_select)
 		{
+			free(plmn);
 			if (net_select->net_select_entry.systemType < entry->systemType)
 				net_select->net_select_entry = *entry;
 		}
@@ -378,13 +382,11 @@ list_continue:
 
 	ril_request_complete(ril_data.tokens.query_avail_networks, RIL_E_SUCCESS, response, length);
 
-	if (plmn != NULL)
-		free(plmn);
-
 	for (i = 0; i < length / sizeof(char *); i++) {
 		if (response[i] != NULL)
 			free(response[i]);
 	}
+	free(response);
 }
 
 void ipc_network_select_cnf(void* data)
