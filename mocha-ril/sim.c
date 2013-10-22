@@ -64,7 +64,7 @@ void ipc_sim_status(void *data)
 	ALOGE("%s: test me!", __func__);
 
 	ril_sim_state sim_state;
-	sim_state =(int) data;
+	sim_state = (int) data;
 
 	/* Update radio state based on SIM state */
 	ril_state_update(sim_state);
@@ -77,7 +77,6 @@ void ipc_sim_status(void *data)
 		sim_data_request_to_modem(4, 0x6f42);
 
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);	
-
 }
 
 void ipc_lock_status(void* data)
@@ -180,7 +179,8 @@ void ipc_sim_io_response(void* data)
 {
 	ALOGE("%s: test me!", __func__);
 
-	char *response, *a;
+	char *response;
+	char tmp[3];
 	uint8_t *buf;
 	int i, dataLen;
 	RIL_SIM_IO_Response sim_io_response;
@@ -197,23 +197,20 @@ void ipc_sim_io_response(void* data)
 
 	if (resp->simDataType == 0x6f42 && ril_data.smsc_number[0] == 0)
 	{
-
 		for (i = dataLen - 15; i < dataLen + (int)buf[dataLen - 15] - 14; i++)
 		{
-			asprintf(&a, "%02x", buf[i]);
-			strcat(ril_data.smsc_number,a);
+			sprintf(tmp, "%02x", buf[i]);
+			strcat(ril_data.smsc_number, tmp);
 		}
 		DEBUG_I("%s : SMSC number: %s", __func__, ril_data.smsc_number);
 		return;				
 	}
 	
-	response = malloc((dataLen * 2) + 1);
-	memset(response, 0, (dataLen * 2) + 1);
-
+	response = calloc((dataLen * 2) + 1, sizeof(*response));
 	for (i = 0; i < dataLen; i++)
 	{
-		asprintf(&a, "%02x", buf[i]);
-		strcat(response,a);
+		sprintf(tmp, "%02x", buf[i]);
+		strcat(response, tmp);
 	}
 	DEBUG_I("%s : SIM_IO_RESPONSE: %s", __func__, response);
 	sim_io_response.sw1 = 144;
