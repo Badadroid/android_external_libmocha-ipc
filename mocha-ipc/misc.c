@@ -71,6 +71,18 @@ void ipc_send_lpm_mode(int lpmEnabled)
 	ipc_send(&pkt);
 }
 
+void ipc_boot8_mode(int mode)
+{
+	uint32_t buf[2];
+	struct modem_io pkt;
+	pkt.magic = 0xCAFECAFE;
+	pkt.cmd = FIFO_PKT_BOOT;
+	pkt.data = (uint8_t*)&buf;
+	buf[0] = 0x8;
+	buf[1] = mode;
+	pkt.datasize = 8;
+	ipc_send(&pkt);
+}
 
 void ipc_power_mode(int mode)
 {
