@@ -97,8 +97,8 @@ void ipc_parse_boot(struct ipc_client *client, struct modem_io *ipc_frame)
 void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame)
 {
 	DEBUG_I("Inside ipc_parse_dbg_level\n");
-
-	ipc_send_debug_level(0xFF);
+	/*Sending  low debug level to AMSS */
+	ipc_send_debug_level(0);
 	/* If someone would ever want to use mocha-ipc as library just to monitor battery state 
 	 * (recovery mode for eg.) AMSS should be initialized in LPM here. 
 	 */
