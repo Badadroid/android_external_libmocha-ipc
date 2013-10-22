@@ -239,7 +239,7 @@ struct ril_data {
 	struct list_head *requests;
 
 	char cached_sw_version[33];
-	uint8_t cached_bcd_imsi[9];
+	uint8_t cached_bcd_imsi[14];
 	char cached_imsi[33];
 
 	int request_id;

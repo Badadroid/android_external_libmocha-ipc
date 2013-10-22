@@ -36,6 +36,7 @@ void ril_sim_init(void)
 void ipc_sim_open(void *data)
 {
 	uint8_t* buf = (uint8_t*)(data);
+	int size_delta;
 	simEventPacketHeader* simEvent = (simEventPacketHeader*)(data);
 	if (simEvent->eventStatus == SIM_CARD_NOT_PRESENT) {
 		DEBUG_I("SIM_ABSENT");
@@ -45,15 +46,16 @@ void ipc_sim_open(void *data)
 		DEBUG_I("SIM_READY");
 		ipc_sim_status((void*)SIM_STATE_READY);
 	}
+	size_delta = 0x473 - simEvent->bufLen; /* 0x473 is event buffer length in "modern" packets. Packets on some SW versions are shorter. */
 	/* copying IMSI in BCD format from sim packet */
-	int imsi_len = buf[0xAE];
+	int imsi_len = buf[0xAE - size_delta];
 	int i = 0;
 	for (i = 0; i < imsi_len; i++)
-		ril_data.cached_bcd_imsi[i] = buf[i+0xB2];
+		ril_data.cached_bcd_imsi[i] = buf[i+0xB2 - size_delta];
 	/*Converting IMSI out of dat stuff to ASCII*/
 	imsi_bcd2ascii(ril_data.cached_imsi, ril_data.cached_bcd_imsi, imsi_len);
 	/* Clean print of IMSI*/
-	memset(buf + 0xB2, 0xFF, imsi_len);
+	memset(buf + 0xB2 - size_delta, 0xFF, imsi_len);
 	ril_tokens_check();
 }
 
