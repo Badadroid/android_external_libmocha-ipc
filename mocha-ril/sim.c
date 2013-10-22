@@ -26,6 +26,7 @@
 #include "util.h"
 #include <sim.h>
 #include <tapi_network.h>
+#include <misc.h>
 
 void ril_sim_init(void)
 {
@@ -57,6 +58,7 @@ void ipc_sim_open(void *data)
 	/* Clean print of IMSI*/
 	memset(buf + 0xB2 - size_delta, 0xFF, imsi_len);
 	ril_tokens_check();
+	ipc_boot8_mode(1);
 }
 
 void ipc_sim_status(void *data)

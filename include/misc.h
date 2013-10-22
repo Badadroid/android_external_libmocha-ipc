@@ -26,6 +26,7 @@
 #include <radio.h>
 
 void ipc_send_lpm_mode(int lpmEnabled);
+void ipc_boot8_mode(int mode);
 void ipc_power_mode(int mode);
 void ipc_parse_boot(struct ipc_client *client, struct modem_io *ipc_frame);
 void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame);

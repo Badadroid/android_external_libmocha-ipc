@@ -71,6 +71,18 @@ void ipc_send_lpm_mode(int lpmEnabled)
 	ipc_send(&pkt);
 }
 
+void ipc_boot8_mode(int mode)
+{
+	uint32_t buf[2];
+	struct modem_io pkt;
+	pkt.magic = 0xCAFECAFE;
+	pkt.cmd = FIFO_PKT_BOOT;
+	pkt.data = (uint8_t*)&buf;
+	buf[0] = 0x8;
+	buf[1] = mode;
+	pkt.datasize = 8;
+	ipc_send(&pkt);
+}
 
 void ipc_power_mode(int mode)
 {
@@ -97,8 +109,8 @@ void ipc_parse_boot(struct ipc_client *client, struct modem_io *ipc_frame)
 void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame)
 {
 	DEBUG_I("Inside ipc_parse_dbg_level\n");
-
-	ipc_send_debug_level(0xFF);
+	/*Sending  low debug level to AMSS */
+	ipc_send_debug_level(0);
 	/* If someone would ever want to use mocha-ipc as library just to monitor battery state 
 	 * (recovery mode for eg.) AMSS should be initialized in LPM here. 
 	 */
