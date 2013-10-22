@@ -92,8 +92,7 @@ void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 			DEBUG_I("SIM_ATK_interface response");
 			break;
 		default :
-			DEBUG_I("Unknown SIM subType %d", simHeader->subType);
-			sim_parse_event(sim_packet.simBuf, simHeader->bufLen);
+			DEBUG_I("Unknown SIM subType %d, discarding the packet...", simHeader->subType);
 			break;
 		}
 	}
