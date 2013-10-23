@@ -243,7 +243,7 @@ struct ril_data {
 	char cached_imsi[33];
 
 	int request_id;
-	char smsc_number[30];
+	char smsc_number[60];
 	int inDevice;
 	int outDevice;
 	int data_call_count;
