@@ -97,21 +97,25 @@ list_continue:
 int ipc2ril_net_mode(uint32_t mode)
 {
 	switch (mode) {
+		case TAPI_NETWORK_MODE_UMTS_900_2100:
+			return PREF_NET_TYPE_WCDMA;/* WCDMA only */
 		case TAPI_NETWORK_MODE_GSM_900_1800:
-			return 1;
+			return PREF_NET_TYPE_GSM_ONLY;/* GSM only */
 		case TAPI_NETWORK_MODE_AUTOMATIC:
 		default:
-			return 0;
+			return PREF_NET_TYPE_GSM_WCDMA; /* GSM/WCDMA (WCDMA preferred) */
 	} 
 }
 
 uint32_t ril2ipc_net_mode(int mode)
 {
 	switch (mode) {
-		case 1: // GSM 900/1800
+		case PREF_NET_TYPE_WCDMA:/* WCDMA only */
+			return TAPI_NETWORK_MODE_UMTS_900_2100;/* WCDMA only */
+		case PREF_NET_TYPE_GSM_ONLY: /* GSM only */
 			return TAPI_NETWORK_MODE_GSM_900_1800;
-		case 0:
-		default: // automatic
+		case PREF_NET_TYPE_GSM_WCDMA:
+		default: /* GSM/WCDMA (WCDMA preferred) */
 			return TAPI_NETWORK_MODE_AUTOMATIC;
 	}
 }
