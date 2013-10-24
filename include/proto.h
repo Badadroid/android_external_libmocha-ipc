@@ -144,7 +144,7 @@ typedef struct {
 	uint16_t protoType;
 	uint32_t contextId; //id for this connection
 	uint16_t error; //errorcode, if non-zero there's been an error
-} __attribute__((__packed__)) protoStopNetworkCnf;
+} __attribute__((__packed__)) protoContext;
 
 typedef struct {
 	uint16_t opMode;

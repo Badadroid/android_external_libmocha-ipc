@@ -68,9 +68,11 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 			break;
 		case PROTO_PACKET_SUSPEND_NETWORK_IND:
 			DEBUG_I("PROTO_PACKET_SUSPEND_NETWORK_IND packet received");
+			ipc_invoke_ril_cb(PROTO_SUSPEND_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_RESUME_NETWORK_IND:
 			DEBUG_I("PROTO_PACKET_RESUME_NETWORK_IND packet received");
+			ipc_invoke_ril_cb(PROTO_RESUME_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_UPDATE_NETWORK_STATUS_IND:
 			DEBUG_I("PROTO_PACKET_UPDATE_NETWORK_STATUS_IND packet received");

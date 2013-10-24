@@ -323,6 +323,7 @@ void ipc_proto_start_network_cnf(void* data)
 		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
 		return;
 	}
+	gprs_connection->active = 2; /* active/physical link up */
 	gprs_connection->ip = htoina(netCnf->netInfo.localAddr);
 	gprs_connection->gateway = htoina(netCnf->netInfo.localAddr);	
 	gprs_connection->dns1 = htoina(netCnf->netInfo.dnsAddr1);	
@@ -372,7 +373,7 @@ void ipc_proto_start_network_cnf(void* data)
 	setup_data_call_response->status = PDP_FAIL_NONE;
 	setup_data_call_response->cid = gprs_connection->cid;
 	setup_data_call_response->ifname = gprs_connection->ifname;
-	setup_data_call_response->active = 2;
+	setup_data_call_response->active = gprs_connection->active;
 	setup_data_call_response->type = proto_type_to_data_call_type(gprs_connection->type);
 	
 	ALOGD("GPRS configuration: cid: %d, type: %s, iface: %s, ip: %s, gateway: %s, dnses: %s", 
@@ -401,7 +402,7 @@ void ipc_proto_stop_network_cnf(void* data)
 	ALOGE("%s: Test me!", __func__);
 
 	struct ril_gprs_connection *gprs_connection;
-	protoStopNetworkCnf* netCnf = (protoStopNetworkCnf*)(data);
+	protoContext* netCnf = (protoContext*)(data);
 
 	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
 
@@ -439,6 +440,44 @@ void ipc_proto_receive_data_ind(void* data)
 	}
 	n = write(gprs_connection->iface, rcvData->netBuf, rcvData->netBufLen);
 	ALOGD("%s: Wrote %d/%d bytes of the net frame into %s", __func__, n, rcvData->netBufLen, gprs_connection->ifname);
+}
+
+void ipc_proto_suspend_network_ind(void* data)
+{
+	ALOGE("%s: Test me!", __func__);
+
+	struct ril_gprs_connection *gprs_connection;
+	protoContext* netCnf = (protoContext*)(data);
+
+	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection, aborting");
+		return;
+	}
+
+	gprs_connection->active = 1; /* active/physical link down */
+
+	ril_unsol_data_call_list_changed(0);
+}
+
+void ipc_proto_resume_network_ind(void* data)
+{
+	ALOGE("%s: Test me!", __func__);
+
+	struct ril_gprs_connection *gprs_connection;
+	protoContext* netCnf = (protoContext*)(data);
+
+	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
+
+	if (!gprs_connection) {
+		ALOGE("Unable to find GPRS connection, aborting");
+		return;
+	}
+
+	gprs_connection->active = 2; /* active/physical link up */
+
+	ril_unsol_data_call_list_changed(0);
 }
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
@@ -620,7 +659,7 @@ void ril_unsol_data_call_list_changed(RIL_Token t)
 
 		data_call_list[i].status = PDP_FAIL_NONE;
 		data_call_list[i].cid = gprs_connection->cid;
-		data_call_list[i].active = 2;
+		data_call_list[i].active = gprs_connection->active;
 		data_call_list[i].type = proto_type_to_data_call_type(gprs_connection->type);
 		data_call_list[i].ifname = gprs_connection->ifname;
 		asprintf(&data_call_list[i].addresses, "%d.%d.%d.%d/%d",
