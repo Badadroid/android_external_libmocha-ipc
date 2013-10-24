@@ -74,7 +74,7 @@ void sound_send_set_mute(uint16_t inDevice, uint16_t outDevice, uint8_t inDevice
 
 	if(soundType == SND_TYPE_VOICE)
 	{
-		if(outDevice == SND_OUTPUT_4) //Bluetooth headset perhaps
+		if(outDevice == SND_OUTPUT_BLUETOOTH)
 			snd_packet.buffer[0] = SOUND_PACKET_NS_EC_OFF;
 		else
 			snd_packet.buffer[0] = SOUND_PACKET_NS_EC_ON;
@@ -101,7 +101,7 @@ void sound_send_set_path(uint16_t inDevice, uint16_t outDevice, uint8_t inDevice
 
 	if(soundType == SND_TYPE_VOICE)
 	{
-		if(outDevice == SND_OUTPUT_4) //Bluetooth headset perhaps
+		if(outDevice == SND_OUTPUT_BLUETOOTH)
 			snd_packet.buffer[0] = SOUND_PACKET_NS_EC_OFF;
 		else
 			snd_packet.buffer[0] = SOUND_PACKET_NS_EC_ON;
