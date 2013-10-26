@@ -660,6 +660,9 @@ void ril_request_dtmf_stop(RIL_Token t)
 	tapi_stop_dtmf(activeCall->callId);
 
 	ril_data.tokens.dtmf_stop = t;
+
+	return;
+
 error:
 	ALOGE("%s: Error!", __func__);
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
