@@ -55,8 +55,10 @@ void ril_request_screen_state(RIL_Token t, void *data, size_t datalen)
 	if (((int *)data)[0] == 0 )
 		ipc_power_mode(0);
 	else
+	{
 		drv_send_packet(BATT_GAUGE_STATUS_REQ, (uint8_t*)&status, 4);
 		ipc_power_mode(6);
+	}
 	ril_request_complete(t, RIL_E_SUCCESS, NULL, 0);
 }
 
