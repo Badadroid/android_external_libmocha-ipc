@@ -45,8 +45,6 @@
  * TODO: Implement handling of all the SIM packets
  *
  */
-sim_data_request sim_data;
-static uint32_t current_simDataCount;
 
 void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 {
@@ -139,71 +137,54 @@ void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame)
 void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 {
 	simEventPacketHeader* simEvent = (simEventPacketHeader*)(buf);
-	uint16_t current_simDataType;
-	uint16_t current_simSomeType;
+	simDataRequest sim_data;
+	uint16_t simFileId;
+	uint16_t simSize;
 	switch(simEvent->eventType)
 	{
 		case SIM_EVENT_BEGIN:
-//			DEBUG_I("SIM_NOT_READY");			
-//			sim_status(SIM_STATE_NOT_READY);
+			DEBUG_I("SIM_EVENT_BEGIN");
 			break;
 		case SIM_EVENT_SIM_OPEN:
 		case SIM_EVENT_GET_SIM_OPEN_DATA:
-			DEBUG_I("SIM_OPEN");
+			DEBUG_I("SIM_EVENT_OPEN");
 			ipc_invoke_ril_cb(SIM_OPEN, (void*)buf);
 			break;
 		case SIM_EVENT_VERIFY_PIN1_IND:
 			if (buf[sizeof(simEventPacketHeader)] == 3)
 			{
 				DEBUG_I("SIM_PUK");
-				sim_status(SIM_STATE_PUK);
+				ipc_invoke_ril_cb(SIM_STATUS, (void*)SIM_STATE_PUK);
 			} else {
 				DEBUG_I("SIM_PIN");
-				sim_status(SIM_STATE_PIN);
+				ipc_invoke_ril_cb(SIM_STATUS, (void*)SIM_STATE_PIN);
 			}
 			break;
 		case SIM_EVENT_VERIFY_CHV:
-			if (simEvent->eventStatus == SIM_OK) {
-				lock_status(buf + sizeof(simEventPacketHeader));
-			} else {
-				DEBUG_I("SIM: something wrong with pin verify response");
-				DEBUG_I("SIM_PIN");
-				sim_status(SIM_STATE_PIN);
-			}
+			DEBUG_I("SIM_EVENT_VERIFY_CHV");
+				ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_DISABLE_CHV:
 			DEBUG_I("SIM_EVENT_DISABLE_CHV");
-			if (simEvent->eventStatus == SIM_OK)
-				lock_status(buf + sizeof(simEventPacketHeader));
+			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_ENABLE_CHV:
 			DEBUG_I("SIM_EVENT_ENABLE_CHV");
-			if (simEvent->eventStatus == SIM_OK)
-				lock_status(buf + sizeof(simEventPacketHeader));
+			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_UNBLOCK_CHV:
-			if (simEvent->eventStatus == SIM_OK) {
-				lock_status(buf + sizeof(simEventPacketHeader));
-			} else {
-				DEBUG_I("SIM: something wrong with puk verify response");
-				DEBUG_I("SIM_PUK");
-				sim_status(SIM_STATE_PUK);
-			}
+			DEBUG_I("SIM_EVENT_UNBLOCK_CHV");
+			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_FILE_INFO:
 			DEBUG_I("SIM_EVENT_FILE_INFO");	
-			memcpy(&current_simDataCount, (buf + 30), 4);
-			DEBUG_I("%s : current_simDataCount = 0x%x", __func__, current_simDataCount);
-			if(current_simDataCount > 0) 
-			{
-				memcpy(&current_simSomeType, (buf + 26), 2);
-				DEBUG_I("%s : current_simSomeType = 0x%x", __func__, current_simSomeType);
-
-				memcpy(&current_simDataType, (buf + 15), 2);
-				DEBUG_I("%s : current_simDataType = 0x%x", __func__, current_simDataType);
-
-				sim_data.simDataType = current_simDataType;
-				sim_data.someType = current_simSomeType;
+			memcpy(&simFileId, (buf + 15), 2);
+			/* work around for reading SMSC number */
+			if (simFileId == 0x6F42) {
+				DEBUG_I("Request for reading SMSC");
+				memcpy(&simSize, (buf + 26), 2);
+				sim_data.fileId = simFileId;
+				sim_data.size = simSize;
 				sim_data.simInd1 = 0x02;
 				sim_data.simInd2 = 0x01;
 				sim_data.unk0 = 0x00;
@@ -215,28 +196,26 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				sim_data.unk6 = 0x00;
 				sim_data.unk7 = 0x00;
 				sim_data.dataCounter = 0x01;
-				DEBUG_I("Sent SIM Request type = 0x%x, packet no. %d, total packets = %d\n", sim_data.simDataType, sim_data.dataCounter, current_simDataCount);
-
 				sim_get_data_from_modem(0x5, &sim_data);
 			}
+			else
+				ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
 			break;
 		case SIM_EVENT_READ_FILE:
 			DEBUG_I("SIM_EVENT_READ_FILE");
-			sim_io_response(buf + sizeof(simEventPacketHeader));
-			sim_data.dataCounter += 1;
-			if (sim_data.dataCounter <= current_simDataCount)
-			{
-				DEBUG_I("Sent SIM Request type = 0x%x, packet no. %d, total packets = %d\n", sim_data.simDataType, sim_data.dataCounter, current_simDataCount);
-				sim_get_data_from_modem(0x5, &sim_data);
-			}		
+			memcpy(&simFileId, (buf + 11), 2);
+			/* work around for reading SMSC number */
+			if (simFileId == 0x6F42)
+				ipc_invoke_ril_cb(SIM_SMSC_NUMBER, (void*)buf);
+			else
+				ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
 			break;
 		case SIM_EVENT_CHANGE_CHV:
 			DEBUG_I("SIM_EVENT_CHANGE_PIN");
-			if (simEvent->eventStatus == SIM_OK)
-				lock_status(buf + sizeof(simEventPacketHeader));
+			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		default:
-			DEBUG_I("SIM DEFAULT");
+			DEBUG_I("SIM_EVENT_DEFAULT");
 			break;
 
 	}
@@ -300,20 +279,7 @@ void sim_verify_chv(uint8_t hSim, uint8_t pinType, char* pin)
 
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, SIM_EVENT_CHANGE_CHV, packetBuf, 10);
-}
-
-void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin)
-{
-	uint8_t packetBuf[10];
-	SIM_VALIDATE_SID(hSim);
-	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
-	//TODO: if session is not busy, mark it busy
-	memset(packetBuf, 0x00, 10);
-
-	packetBuf[0] = pinType;
-	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, SIM_EVENT_DISABLE_CHV, packetBuf, 10);
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_VERIFY_CHV, packetBuf, 10);
 }
 
 void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin)
@@ -326,7 +292,20 @@ void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin)
 
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, SIM_EVENT_ENABLE_CHV, packetBuf, 10);
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_ENABLE_CHV, packetBuf, 10);
+}
+
+void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin)
+{
+	uint8_t packetBuf[10];
+	SIM_VALIDATE_SID(hSim);
+	//TODO: obtain session context, check if session is busy, print exception if it is busy and return failure
+	//TODO: if session is not busy, mark it busy
+	memset(packetBuf, 0x00, 10);
+
+	packetBuf[0] = pinType;
+	memcpy(packetBuf+1, pin, strlen(pin)); //max pin len is 9 digits
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_DISABLE_CHV, packetBuf, 10);
 }
 
 void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin)
@@ -340,7 +319,7 @@ void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin)
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, old_pin, strlen(old_pin)); //max puk len is 9 digits
 	memcpy(packetBuf+11, new_pin, strlen(new_pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, 0xF, packetBuf, 20);
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_CHANGE_CHV, packetBuf, 20);
 }
 
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin)
@@ -354,14 +333,14 @@ void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin)
 	packetBuf[0] = pinType;
 	memcpy(packetBuf+1, puk, strlen(puk)); //max puk len is 9 digits
 	memcpy(packetBuf+11, pin, strlen(pin)); //max pin len is 9 digits
-	sim_send_oem_data(hSim, SIM_EVENT_UNBLOCK_CHV, packetBuf, 20);
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_UNBLOCK_CHV, packetBuf, 20);
 }
 
 int sim_atk_open(void)
 {
 	//TODO: verify ATK session and create/open it and return handler to it?!
 	DEBUG_I("sim_atk_open");
-	sim_send_oem_data(0xA, 0x1B, NULL, 0); //0xA hSim is hardcoded in bada
+	sim_send_oem_data(0xA, SIM_OEM_REQUEST_ATK_OPEN, NULL, 0); //0xA hSim is hardcoded in bada
 	return 0;
 }
 
@@ -369,7 +348,7 @@ void sim_open_to_modem(uint8_t hSim)
 {
 	//TODO: verify, create and initialize session, send real hSim
 	DEBUG_I("sim_open_to_modem");
-	sim_send_oem_data(hSim, 0x1, NULL, 0); //why it starts from 4? hell knows
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_OPEN, NULL, 0); //why it starts from 4? hell knows
 }
 
 void sim_atk_send_packet(uint32_t atkType, uint32_t atkSubType, uint32_t atkBufLen, uint8_t* atkBuf)
@@ -400,29 +379,17 @@ void sim_atk_send_packet(uint32_t atkType, uint32_t atkSubType, uint32_t atkBufL
 	free(fifobuf);
 }
 
-void sim_status(int simCardStatus)
-{
-	DEBUG_I("SIM STATUS CHANGED");
-	ipc_invoke_ril_cb(SIM_STATUS, (void*)simCardStatus);
-}
-
-void lock_status(uint8_t *lockStatus)
-{
-	DEBUG_I("LOCK STATUS CHANGED");
-	ipc_invoke_ril_cb(LOCK_STATUS, (void*)lockStatus);
-}
-
-void sim_get_data_from_modem(uint8_t hSim, sim_data_request *sim_data)
+void sim_get_data_from_modem(uint8_t hSim, simDataRequest *sim_data)
 {
 	ALOGE("%s: test me!", __func__);
 	//TODO: verify, create and initialize session, send real hSim
 	uint8_t *data;
 
-	data = malloc(sizeof(sim_data_request));
-	memcpy(data, sim_data, sizeof(sim_data_request));
+	data = malloc(sizeof(simDataRequest));
+	memcpy(data, sim_data, sizeof(simDataRequest));
 
 	DEBUG_I("Sending sim_get_data_from_modem\n");
-	sim_send_oem_data(hSim, 0x7, data, sizeof(sim_data_request));  //why it starts from 4? hell knows
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_READ_FILE_RECORD, data, sizeof(simDataRequest));  //why it starts from 4? hell knows
 	free(data);
 }
 
@@ -437,12 +404,6 @@ void sim_data_request_to_modem(uint8_t hSim, uint16_t simDataType)
 
 	DEBUG_I("Sending sim_data_request_to_modem\n");
 
-	sim_send_oem_data(hSim, 0x3, data, sizeof(simDataType)); //why it starts from 4? hell knows
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_GET_FILE_INFO, data, sizeof(simDataType)); //why it starts from 4? hell knows
 	free(data);
 }
-
-void sim_io_response(uint8_t* buf)
-{
-	ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
-}
-

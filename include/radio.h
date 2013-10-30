@@ -77,6 +77,7 @@ enum ipc_ril_cb_type {
     SIM_STATUS,
     LOCK_STATUS,
     SIM_IO_RESPONSE,
+    SIM_SMSC_NUMBER,
     SS_USSD_CALLBACK,
     SS_ERROR,
     PROTO_START_NETWORK_CNF,

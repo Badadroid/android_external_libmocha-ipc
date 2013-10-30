@@ -2,6 +2,8 @@
  * This file is part of libmocha-ipc.
  *
  * Copyright (C) 2012 KB <kbjetdroid@gmail.com>
+ * Copyright (C) 2013 Dominik Marszk <dmarszk@gmail.com>
+ * Copyright (C) 2013 Nikolay Volkov <volk204@mail.ru>
  *
  * Implemented as per the Mocha AP-CP protocol analysis done by Dominik Marszk
  *
@@ -60,6 +62,32 @@ enum SIM_EVENT_TYPE
 	SIM_EVENT_OPEN_CHANNEL = 23,
 	SIM_EVENT_CLOSE_CHANNEL = 24,
 	SIM_EVENT_END = 25,	
+};
+
+enum SIM_OEM_REQUEST_TYPE
+{
+	SIM_OEM_REQUEST_OPEN = 1,
+	SIM_OEM_REQUEST_GET_OPEN_DATA = 2,
+	SIM_OEM_REQUEST_GET_FILE_INFO = 3,
+	SIM_OEM_REQUEST_GET_FILE_INFO_EX = 4,
+	SIM_OEM_REQUEST_READ_FILE_BINARY = 6,
+	SIM_OEM_REQUEST_READ_FILE_RECORD = 7,
+	SIM_OEM_REQUEST_VERIFY_CHV = 11,
+	SIM_OEM_REQUEST_PERFORM_AKA = 19,
+	SIM_OEM_REQUEST_PERFORM_SIM = 20,
+	SIM_OEM_REQUEST_CHANGE_CHV = 15,
+	SIM_OEM_REQUEST_DISABLE_CHV = 13,
+	SIM_OEM_REQUEST_ENABLE_CHV = 12,
+	SIM_OEM_REQUEST_UNBLOCK_CHV = 14,
+	SIM_OEM_REQUEST_DISABLE_FDN = 16,
+	SIM_OEM_REQUEST_ENABLE_FDN = 17,
+	SIM_OEM_REQUEST_SEARCH_RECORD = 18,
+	SIM_OEM_REQUEST_SET_MESSENGER_STATUS = 24,
+	SIM_OEM_REQUEST_OPEN_CHANNEL = 25,
+	SIM_OEM_REQUEST_CLOSE_CHANNEL = 26,
+	SIM_OEM_REQUEST_ATK_OPEN = 27,
+	SIM_OEM_REQUEST_KDA_REGISTER = 56,//not sure if it's KDA, it's called from "OemCalIccRegister" function
+	//PERFORM_AKA and PERFORM_SIM are used by respectively NdsIpEapPerformEapAKA and NdsIpEapPerformEapSIM.
 };
 
 enum SIM_EVENT_STATUS
@@ -128,28 +156,40 @@ typedef struct
 
 typedef struct
 {
-	uint16_t 	simDataType;
+	uint16_t 	fileId;
 	uint8_t 	simInd1; //always 0x02
 	uint32_t 	unk0; //always 0x00
 	uint32_t 	dataCounter;
 	uint32_t 	unk1; //always 0x00
 	uint32_t 	unk2; //always 0x00
 	uint8_t 	simInd2; //always 0x01
-	uint16_t 	someType;
+	uint16_t 	size;
 	uint32_t 	unk3; //always 0x00
 	uint32_t 	unk4; //always 0x00
 	uint32_t 	unk5; //always 0x00
 	uint32_t 	unk6; //always 0x00
 	uint32_t 	unk7; //always 0x00
-} __attribute__((__packed__))  sim_data_request;
+} __attribute__((__packed__))  simDataRequest;
 
 typedef struct
 {
-	uint16_t 	simDataType;
+	uint16_t 	fileId;
 	uint32_t 	bufLen;
 	//uint8_t		*buf;
-} __attribute__((__packed__))  sim_data_response;
+} __attribute__((__packed__))  simDataResponse;
 
+typedef struct
+{
+	uint32_t unknown;
+	uint16_t fileId;
+	uint8_t unknown2[9];
+	uint8_t recordSize;
+	uint8_t align[3];
+	uint8_t recordCount;
+	uint8_t align2[3];
+	uint16_t fileSize;
+	uint8_t unknown3[6];
+} __attribute__((__packed__)) fileInfoEvent;
 
 void ipc_parse_sim(struct ipc_client* client, struct modem_io *ipc_frame);
 void sim_parse_event(uint8_t* buf, uint32_t bufLen);
@@ -163,13 +203,10 @@ void sim_disable_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_enable_chv(uint8_t hSim, uint8_t pinType, char* pin);
 void sim_unblock_chv(uint8_t hSim, uint8_t pinType, char* puk, char* pin);
 void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin);
+
 int sim_atk_open(void);
 void sim_open_to_modem(uint8_t hSim);
-void sim_status(int simCardStatus);
-void lock_status(uint8_t *lockStatus);
-
-void sim_get_data_from_modem(uint8_t hSim, sim_data_request *sim_data);
+void sim_get_data_from_modem(uint8_t hSim, simDataRequest *sim_data);
 void sim_data_request_to_modem(uint8_t hSim, uint16_t simDataType);
-void sim_io_response(uint8_t* buf);
 
 #endif

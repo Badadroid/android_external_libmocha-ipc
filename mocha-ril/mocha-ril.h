@@ -50,6 +50,7 @@
 #define RIL_CLIENT_UNLOCK(client) pthread_mutex_unlock(&(client->mutex))
 
 #define RIL_TOKEN_DATA_WAITING	(RIL_Token) 0xff
+#define RIL_TOKEN_NULL		(RIL_Token) 0x00
 
 /**
  * RIL structures
@@ -143,6 +144,7 @@ struct ril_tokens {
 	RIL_Token setup_data_call;
 	RIL_Token set_facility_lock;
 	RIL_Token change_sim_pin;
+	RIL_Token sim_io;
 };
 
 void ril_tokens_check(void);
@@ -228,6 +230,18 @@ typedef struct ril_net_select {
 	tapiNetSearchCnf net_select_entry;
 } ril_net_select;
 
+typedef struct ril_request_sim_io_info {
+	int command;
+	int fileid;
+	int p1;
+	int p2;
+	int p3;
+	char *data;
+	int length;
+	int waiting;
+	RIL_Token token;
+} ril_request_sim_io_info;
+
 struct ril_data {
 	struct RIL_Env *env;
 
@@ -237,6 +251,7 @@ struct ril_data {
 	struct list_head *gprs_connections;
 	struct list_head *net_select_list;
 	struct list_head *requests;
+	struct list_head *sim_io;
 
 	char cached_sw_version[33];
 	uint8_t cached_bcd_imsi[14];
@@ -347,6 +362,7 @@ void ril_sim_init(void);
 void ipc_sim_open(void *data);
 void ipc_sim_status(void *data);
 void ipc_lock_status(void* data);
+void ipc_sim_smsc_number(void* data);
 void ipc_sim_io_response(void* data);
 void ril_request_get_sim_status(RIL_Token t);
 void ril_state_update(ril_sim_state sim_state);
@@ -355,6 +371,17 @@ void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
 void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen);
 void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen);
 void ril_request_change_sim_pin(RIL_Token t, void *data, size_t datalen);
+int ril_request_sim_io_register(RIL_Token t, int command, int fileid,
+	int p1, int p2, int p3, char *data, int length,
+	struct ril_request_sim_io_info **sim_io_p);
+void ril_request_sim_io_unregister(struct ril_request_sim_io_info *sim_io);
+struct ril_request_sim_io_info *ril_request_sim_io_info_find(void);
+struct ril_request_sim_io_info *ril_request_sim_io_info_find_token(RIL_Token t);
+void ril_request_sim_io_info_clear(struct ril_request_sim_io_info *sim_io);
+void ril_request_sim_io_next(void);
+void ril_request_sim_io_complete(RIL_Token t, int command, int fileid,
+	int p1, int p2, int p3, char *data, int length);
+void ril_request_sim_io(RIL_Token t, void *data, int length);
 
 /* SMS */
 void ipc_sms_send_status(void* data);

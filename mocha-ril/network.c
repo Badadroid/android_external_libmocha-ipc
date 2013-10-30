@@ -426,7 +426,7 @@ void network_start(void)
 	tapi_nettext_set_net_burst(0); /* disable */
 
 	if (ril_data.state.sim_state == SIM_STATE_READY)
-		sim_status(2);
+		ipc_sim_status((void*)SIM_STATE_READY);
 
 }
 
