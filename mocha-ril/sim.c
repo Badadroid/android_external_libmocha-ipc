@@ -78,7 +78,7 @@ void ipc_sim_status(void *data)
 
 	if (sim_state == SIM_STATE_READY && ril_data.smsc_number[0] == 0)
 		//request SMSC number
-		sim_data_request_to_modem(4, 0x6f42);
+		sim_get_file_info(4, 0x6f42);
 
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);	
 }
@@ -289,6 +289,9 @@ void ipc_sim_io_response(void* data)
 			sim_file_response.file_length = 0x02;
 
 			sim_file_response.file_structure = SIM_FILE_STRUCTURE_LINEAR_FIXED;
+
+			if (fileInfo->fileId == 0x2FE2)
+				sim_file_response.file_structure = SIM_FILE_STRUCTURE_TRANSPARENT;
 
 			sim_file_response.record_length = fileInfo->recordSize;
 
@@ -709,31 +712,42 @@ void ril_request_sim_io_complete(RIL_Token t, int command, int fileid,
 int p1, int p2, int p3, char *data, int length)
 {
 	simDataRequest sim_data;
+	int i;
 
 	switch(command)
 	{
 		case SIM_COMMAND_GET_RESPONSE:
 			ALOGD("%s: fileid 0x%x", __func__, fileid);
-			sim_data_request_to_modem(4, fileid);
+			sim_get_file_info(4, fileid);
 			break;
 		case SIM_COMMAND_READ_RECORD:
+		case SIM_COMMAND_READ_BINARY:
 			sim_data.fileId = fileid;
-			sim_data.size = p3;
-			sim_data.simInd1 = 0x02;
-			sim_data.simInd2 = 0x01;
+			sim_data.fileType = SIM_FILE_TYPE_MF;
+			for (i = 0 ; i < sim_file_ids_count ; i++) {
+				if (sim_data.fileId == sim_file_ids[i].file_id) {
+					sim_data.fileType = sim_file_ids[i].type;
+					break;
+				}
+			}
 			sim_data.unk0 = 0x00;
+			sim_data.recordIndex = p1;
 			sim_data.unk1 = 0x00;
 			sim_data.unk2 = 0x00;
+			sim_data.simInd2 = 0x01;
+			sim_data.size = p3;
 			sim_data.unk3 = 0x00;
 			sim_data.unk4 = 0x00;
 			sim_data.unk5 = 0x00;
 			sim_data.unk6 = 0x00;
 			sim_data.unk7 = 0x00;
-			sim_data.dataCounter = p1;
-			DEBUG_I("%s: Reading Record: fileId = 0x%x, packet no. %d\n", __func__, sim_data.fileId, sim_data.dataCounter);
-			sim_get_data_from_modem(0x5, &sim_data);
+
+			DEBUG_I("%s: Reading Record: fileId = 0x%x, packet no. %d\n", __func__, sim_data.fileId, sim_data.recordIndex);
+			if (command == SIM_COMMAND_READ_RECORD)
+				sim_read_file_record(0x5, &sim_data);
+			else
+				sim_read_file_binary(0x5, &sim_data);
 			break;
-		case SIM_COMMAND_READ_BINARY:
 		case SIM_COMMAND_UPDATE_BINARY:
 		case SIM_COMMAND_UPDATE_RECORD:
 		case SIM_COMMAND_SEEK:
@@ -760,10 +774,11 @@ void ril_request_sim_io(RIL_Token t, void *data, int length)
 
 	if (sim_io->command != SIM_COMMAND_GET_RESPONSE)
 		if (sim_io->command != SIM_COMMAND_READ_RECORD)
-		{
-			ALOGE("%s: Unsupported SIM_IO comand 0x%x", __func__, sim_io->command);
-			goto error;
-		}
+			if (sim_io->command != SIM_COMMAND_READ_BINARY)
+			{
+				ALOGE("%s: Unsupported SIM_IO comand 0x%x", __func__, sim_io->command);
+				goto error;
+			}
 
 	// SIM IO data should be a string if present
 	if (sim_io->data != NULL) {

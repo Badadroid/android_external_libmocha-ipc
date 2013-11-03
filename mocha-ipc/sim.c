@@ -185,7 +185,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				memcpy(&simSize, (buf + 26), 2);
 				sim_data.fileId = simFileId;
 				sim_data.size = simSize;
-				sim_data.simInd1 = 0x02;
+				sim_data.fileType = 0x02;
 				sim_data.simInd2 = 0x01;
 				sim_data.unk0 = 0x00;
 				sim_data.unk1 = 0x00;
@@ -195,8 +195,8 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				sim_data.unk5 = 0x00;
 				sim_data.unk6 = 0x00;
 				sim_data.unk7 = 0x00;
-				sim_data.dataCounter = 0x01;
-				sim_get_data_from_modem(0x5, &sim_data);
+				sim_data.recordIndex = 0x01;
+				sim_read_file_record(0x5, &sim_data);
 			}
 			else
 				ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
@@ -379,30 +379,41 @@ void sim_atk_send_packet(uint32_t atkType, uint32_t atkSubType, uint32_t atkBufL
 	free(fifobuf);
 }
 
-void sim_get_data_from_modem(uint8_t hSim, simDataRequest *sim_data)
+void sim_read_file_record(uint8_t hSim, simDataRequest *sim_data)
 {
-	ALOGE("%s: test me!", __func__);
 	//TODO: verify, create and initialize session, send real hSim
 	uint8_t *data;
 
 	data = malloc(sizeof(simDataRequest));
 	memcpy(data, sim_data, sizeof(simDataRequest));
 
-	DEBUG_I("Sending sim_get_data_from_modem\n");
+	DEBUG_I("Sending sim_read_file_record\n");
 	sim_send_oem_data(hSim, SIM_OEM_REQUEST_READ_FILE_RECORD, data, sizeof(simDataRequest));  //why it starts from 4? hell knows
 	free(data);
 }
 
-void sim_data_request_to_modem(uint8_t hSim, uint16_t simDataType)
+void sim_read_file_binary(uint8_t hSim, simDataRequest *sim_data)
 {
-	ALOGE("%s: test me!", __func__);
+	//TODO: verify, create and initialize session, send real hSim
+	uint8_t *data;
+
+	data = malloc(sizeof(simDataRequest));
+	memcpy(data, sim_data, sizeof(simDataRequest));
+
+	DEBUG_I("Sending sim_read_file_binary\n");
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_READ_FILE_BINARY, data, sizeof(simDataRequest));  //why it starts from 4? hell knows
+	free(data);
+}
+
+void sim_get_file_info(uint8_t hSim, uint16_t simDataType)
+{
 	//TODO: verify, create and initialize session, send real hSim
 	uint8_t *data;
 
 	data = malloc(sizeof(simDataType));
 	memcpy(data,&simDataType,sizeof(simDataType));
 
-	DEBUG_I("Sending sim_data_request_to_modem\n");
+	DEBUG_I("Sending sim_get_file_info\n");
 
 	sim_send_oem_data(hSim, SIM_OEM_REQUEST_GET_FILE_INFO, data, sizeof(simDataType)); //why it starts from 4? hell knows
 	free(data);

@@ -157,9 +157,9 @@ typedef struct
 typedef struct
 {
 	uint16_t 	fileId;
-	uint8_t 	simInd1; //always 0x02
+	uint8_t 	fileType;
 	uint32_t 	unk0; //always 0x00
-	uint32_t 	dataCounter;
+	uint32_t 	recordIndex;
 	uint32_t 	unk1; //always 0x00
 	uint32_t 	unk2; //always 0x00
 	uint8_t 	simInd2; //always 0x01
@@ -206,7 +206,8 @@ void sim_change_chv(uint8_t hSim, uint8_t pinType, char* old_pin, char* new_pin)
 
 int sim_atk_open(void);
 void sim_open_to_modem(uint8_t hSim);
-void sim_get_data_from_modem(uint8_t hSim, simDataRequest *sim_data);
-void sim_data_request_to_modem(uint8_t hSim, uint16_t simDataType);
+void sim_read_file_record(uint8_t hSim, simDataRequest *sim_data);
+void sim_read_file_binary(uint8_t hSim, simDataRequest *sim_data);
+void sim_get_file_info(uint8_t hSim, uint16_t simDataType);
 
 #endif
