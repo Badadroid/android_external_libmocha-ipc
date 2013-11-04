@@ -780,6 +780,12 @@ void ril_request_sim_io(RIL_Token t, void *data, int length)
 				goto error;
 			}
 
+	if (sim_io->fileid == 0x6fad || sim_io->fileid == 0x6fcd || sim_io->fileid == 0x6fc5 ||sim_io->fileid == 0x6f16 || sim_io->fileid == 0x6f14)
+	{
+		ALOGE("%s: Unsupported SIM_IO file 0x%x", __func__, sim_io->fileid);
+		goto error;
+	}
+
 	// SIM IO data should be a string if present
 	if (sim_io->data != NULL) {
 		sim_io_data_length = strlen(sim_io->data) / 2;
