@@ -290,7 +290,7 @@ void ipc_sim_io_response(void* data)
 
 			sim_file_response.file_structure = SIM_FILE_STRUCTURE_LINEAR_FIXED;
 
-			if (fileInfo->fileId == 0x2FE2)
+			if (fileInfo->fileId == 0x2FE2 || fileInfo->fileId == 0x6F46)
 				sim_file_response.file_structure = SIM_FILE_STRUCTURE_TRANSPARENT;
 
 			sim_file_response.record_length = fileInfo->recordSize;
