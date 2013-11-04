@@ -78,7 +78,7 @@ void ipc_sim_status(void *data)
 
 	if (sim_state == SIM_STATE_READY && ril_data.smsc_number[0] == 0)
 		//request SMSC number
-		sim_get_file_info(4, 0x6f42);
+		sim_get_file_info(0x5, 0x6f42);
 
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);	
 }
@@ -718,7 +718,7 @@ int p1, int p2, int p3, char *data, int length)
 	{
 		case SIM_COMMAND_GET_RESPONSE:
 			ALOGD("%s: fileid 0x%x", __func__, fileid);
-			sim_get_file_info(4, fileid);
+			sim_get_file_info(0x5, fileid);
 			break;
 		case SIM_COMMAND_READ_RECORD:
 		case SIM_COMMAND_READ_BINARY:
