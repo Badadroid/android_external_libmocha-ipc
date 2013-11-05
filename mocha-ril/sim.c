@@ -231,6 +231,9 @@ void ipc_sim_smsc_number(void* data)
 				strcat(ril_data.smsc_number, tmp);
 			}
 		ALOGD("%s : SMSC number: %s", __func__, ril_data.smsc_number);
+
+		if (ril_data.tokens.sim_io == RIL_TOKEN_DATA_WAITING)
+			ril_request_sim_io_next();
 	}
 }
 
@@ -811,6 +814,12 @@ void ril_request_sim_io(RIL_Token t, void *data, int length)
 
 	if (ril_data.tokens.sim_io != RIL_TOKEN_NULL) {
 		ALOGD("%s: Another SIM I/O is being processed, adding to the list", __func__);
+		return;
+	}
+
+	if  (ril_data.smsc_number[0] == 0)
+	{
+		ril_data.tokens.sim_io = RIL_TOKEN_DATA_WAITING;
 		return;
 	}
 
