@@ -350,7 +350,7 @@ void ipc_incoming_sms(void* data)
 
 	if (nettextInfo->dischargeTime == 0x00)
 	{
-		if (nettextInfo->nUDH == 1) {
+		if (nettextInfo->nUDH == 1 || nettextInfo->msgType == 0x10) {
 			pdu_type = "44";
 		}
 		else {
@@ -507,10 +507,16 @@ void ipc_incoming_sms(void* data)
 		i++;
 	}
 
-	if (nettextInfo->alphabetType == 3) {
+	if (nettextInfo->alphabetType == 3 || nettextInfo->msgType == 0x10) {
 		/*TP-DCS: TP-Data-Coding-Scheme */
-		dcs = 0x08; //Unicode
-		DEBUG_I("%s : TP-DCS = Unicode", __func__);
+		if (nettextInfo->msgType == 0x10) {
+			DEBUG_I("%s : TP-DCS = ASCII (MMS receiving)", __func__);
+			dcs = 0x04;
+		}
+		else {
+			DEBUG_I("%s : TP-DCS = Unicode", __func__);
+			dcs = 0x08; //Unicode
+		}
 
 		tp_ud = calloc(strlen(message) + 2, sizeof(*tp_ud));
 
