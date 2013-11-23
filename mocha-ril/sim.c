@@ -308,8 +308,8 @@ void ipc_sim_io_response(void* data)
 			buf = (uint8_t *)data + sizeof(simEventPacketHeader) + sizeof(simDataResponse);
 
 			// Copy the data as-is
-			sim_response = calloc(1,sim_io_info->p3 * 2 + 1);
-			for (i = 0; i <= sim_io_info->p3; i++)
+			sim_response = calloc(1, sim_io_info->p3 * 2 + 1);
+			for (i = 0; i < sim_io_info->p3; i++)
 			{
 				sprintf(tmp, "%02X", buf[i]);
 				strcat(sim_response, tmp);
