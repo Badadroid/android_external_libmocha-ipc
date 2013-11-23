@@ -103,7 +103,7 @@ void *gprs_tunneling_thread(void *data)
 		if(FD_ISSET(gprs_connection->iface, &fds)) {
 			n = read(gprs_connection->iface, buf, 1500);
 			RIL_LOCK();
-			ALOGD("%s: Tunneling %d bytes of the net frame from %s to CP", __func__, n, gprs_connection->ifname);
+			ALOGV("%s: Tunneling %d bytes of the net frame from %s to CP", __func__, n, gprs_connection->ifname);
 			proto_send_data(PROTO_OPMODE_PS, gprs_connection->type, gprs_connection->contextId, n, buf);
 			RIL_UNLOCK();
 		}		
@@ -439,7 +439,7 @@ void ipc_proto_receive_data_ind(void* data)
 		return;
 	}
 	n = write(gprs_connection->iface, rcvData->netBuf, rcvData->netBufLen);
-	ALOGD("%s: Wrote %d/%d bytes of the net frame into %s", __func__, n, rcvData->netBufLen, gprs_connection->ifname);
+	ALOGV("%s: Wrote %d/%d bytes of the net frame into %s", __func__, n, rcvData->netBufLen, gprs_connection->ifname);
 }
 
 void ipc_proto_suspend_network_ind(void* data)
