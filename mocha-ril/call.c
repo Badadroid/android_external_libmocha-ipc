@@ -398,7 +398,8 @@ void ril_request_get_current_calls(RIL_Token t)
 	for (i = 0; i < j; i++) {
 		free(calls[i]);
 	}
-	free(calls);
+	if(calls)
+		free(calls);
 }
 
 void ril_request_hangup(RIL_Token t, void *data, size_t datalen)

@@ -385,7 +385,6 @@ void ipc_proto_start_network_cnf(void* data)
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
 
-	ril_data.data_call_count++;
 	ril_unsol_data_call_list_changed(0);
 	
 	if(setup_data_call_response->addresses)
@@ -423,7 +422,6 @@ void ipc_proto_stop_network_cnf(void* data)
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
 	ril_gprs_connection_stop(gprs_connection);
 
-	ril_data.data_call_count--;
 	ril_unsol_data_call_list_changed(0);
 }
 
@@ -646,10 +644,9 @@ void ril_unsol_data_call_list_changed(RIL_Token t)
 	ALOGE("%s: test me me!", __func__);
 	struct ril_gprs_connection *gprs_connection;
 	struct list_head *list;
-	RIL_Data_Call_Response_v6 data_call_list[ril_data.data_call_count];
+	RIL_Data_Call_Response_v6 *data_call_list = NULL;
 	int i = 0;
-
-	memset(data_call_list, 0, sizeof(data_call_list));
+	int j;
 
 	list = ril_data.gprs_connections;
 	while (list != NULL) {
@@ -657,6 +654,8 @@ void ril_unsol_data_call_list_changed(RIL_Token t)
 		if (gprs_connection == NULL)
 			goto list_continue;
 
+		data_call_list = realloc(data_call_list, (i + 1) * sizeof(RIL_Data_Call_Response_v6));
+		memset(&(data_call_list[i]), 0, sizeof(RIL_Data_Call_Response_v6));
 		data_call_list[i].status = PDP_FAIL_NONE;
 		data_call_list[i].cid = gprs_connection->cid;
 		data_call_list[i].active = gprs_connection->active;
@@ -677,12 +676,13 @@ list_continue:
 
 	if (t == 0)
 		ril_request_unsolicited(RIL_UNSOL_DATA_CALL_LIST_CHANGED,
-		&data_call_list, sizeof(data_call_list));
+			data_call_list, i);
 	else
 		ril_request_complete(t, RIL_E_SUCCESS,
-		&data_call_list, sizeof(data_call_list));
+			data_call_list, i);
 
-	for (i = 0; i < ril_data.data_call_count; i++) {
+	j = i;
+	for (i = 0; i < j; i++) {
 		if (data_call_list[i].addresses)
 			free(data_call_list[i].addresses);
 		if (data_call_list[i].dnses)
@@ -690,7 +690,8 @@ list_continue:
 		if (data_call_list[i].gateways)
 			free(data_call_list[i].gateways);
 	}
-
+	if(data_call_list)
+		free(data_call_list);
 }
 
 void ril_request_data_call_list(RIL_Token t)

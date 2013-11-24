@@ -261,7 +261,6 @@ struct ril_data {
 	char smsc_number[60];
 	int inDevice;
 	int outDevice;
-	int data_call_count;
 	ril_call_context *calls[MAX_CALLS];
 	struct ril_client *ipc_packet_client;
 	struct ril_client *srs_client;
