@@ -676,10 +676,10 @@ list_continue:
 
 	if (t == 0)
 		ril_request_unsolicited(RIL_UNSOL_DATA_CALL_LIST_CHANGED,
-			data_call_list, i);
+			data_call_list, i * sizeof(RIL_Data_Call_Response_v6));
 	else
 		ril_request_complete(t, RIL_E_SUCCESS,
-			data_call_list, i);
+			data_call_list, i * sizeof(RIL_Data_Call_Response_v6));
 
 	j = i;
 	for (i = 0; i < j; i++) {
