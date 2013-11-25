@@ -79,7 +79,6 @@ struct protoPacket {
 	uint8_t *buf;
 } __attribute__((__packed__));
 
-
 typedef struct {
 	uint16_t opMode;
 	uint16_t protoType;
@@ -124,6 +123,14 @@ typedef struct {
 	uint32_t dnsAddr2;
 	uint8_t unknown3[165];
 } __attribute__((__packed__)) protoStartNetworkInfo;
+
+typedef struct {
+	uint16_t opMode;
+	uint16_t protoType;
+	uint32_t contextId; //id for this connection
+	uint32_t protoAccount;
+	uint16_t error; //errorcode, if non-zero there's been an error
+} __attribute__((__packed__)) protoStartingNetworkInd;
 
 typedef struct {
 	uint16_t opMode;

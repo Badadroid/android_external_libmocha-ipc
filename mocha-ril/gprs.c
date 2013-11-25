@@ -294,11 +294,34 @@ void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 	ril_gprs_connection_unregister(gprs_connection);
 }
 
+void ipc_proto_starting_network_ind(void* data)
+{
+	ALOGD("%s: Test me!", __func__);
+	struct ril_gprs_connection *gprs_connection;
+	protoStartingNetworkInd* netInd = (protoStartingNetworkInd*)(data);
+
+	if (netInd->error == 0)
+		return;
+
+	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
+
+	if (!gprs_connection) {
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
+		return;
+	}
+
+	ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+	gprs_connection->token = 0;
+	ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+
+	ril_unsol_data_call_list_changed(0);
+}
+
 #define IN_ADDR_FMT(ip) ((uint8_t*)&ip.s_addr)[0], ((uint8_t*)&ip.s_addr)[1], ((uint8_t*)&ip.s_addr)[2], ((uint8_t*)&ip.s_addr)[3] 
 
 void ipc_proto_start_network_cnf(void* data)
 {
-	ALOGE("%s: Test me!", __func__);
+	ALOGD("%s: Test me!", __func__);
 
 	struct ril_gprs_connection *gprs_connection;
 	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
@@ -307,7 +330,7 @@ void ipc_proto_start_network_cnf(void* data)
 	gprs_connection = ril_gprs_connection_find_contextId(0xFFFFFFFF);
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection, aborting");
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
 		return;
 	}
 	gprs_connection->contextId = netCnf->contextId;
@@ -315,7 +338,7 @@ void ipc_proto_start_network_cnf(void* data)
 	if (netCnf->error != 0)
 	{
 		//FIXME: add conversion for error
-		ALOGE("There was an error, aborting port list complete");
+		ALOGE("%s: There was an error, aborting port list complete", __func__);
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -334,7 +357,7 @@ void ipc_proto_start_network_cnf(void* data)
 	if(gprs_start_tunneling_thread(gprs_connection) != 0)
 	{
 		//TODO: Close proto on CP side
-		ALOGE("Couldn't start the tunneling thread");
+		ALOGE("%s: Couldn't start the tunneling thread", __func__);
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -348,7 +371,7 @@ void ipc_proto_start_network_cnf(void* data)
 		gprs_connection->dns1.s_addr, gprs_connection->dns2.s_addr) < 0)
 	{
 		//TODO: Close proto on CP side
-		ALOGE("Couldn't ifc_configure on %s, errno: %d (check system logcat)", gprs_connection->ifname, errno);
+		ALOGE("%s: Couldn't ifc_configure on %s, errno: %d (check system logcat)", __func__, gprs_connection->ifname, errno);
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -398,7 +421,7 @@ void ipc_proto_start_network_cnf(void* data)
 
 void ipc_proto_stop_network_cnf(void* data)
 {
-	ALOGE("%s: Test me!", __func__);
+	ALOGD("%s: Test me!", __func__);
 
 	struct ril_gprs_connection *gprs_connection;
 	protoContext* netCnf = (protoContext*)(data);
@@ -406,20 +429,30 @@ void ipc_proto_stop_network_cnf(void* data)
 	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection, aborting");
-		return;
-	}
-
-	if (netCnf->error != 0)
-	{
-		//FIXME: add conversion for error
-		ALOGE("There was an error, aborting deactivate data call");
-		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-		gprs_connection->token = 0;
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
 		return;
 	}
 
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
+	ril_gprs_connection_stop(gprs_connection);
+
+	ril_unsol_data_call_list_changed(0);
+}
+
+void ipc_proto_stop_network_ind(void* data)
+{
+	ALOGD("%s: Test me!", __func__);
+
+	struct ril_gprs_connection *gprs_connection;
+	protoContext* netInd = (protoContext*)(data);
+
+	gprs_connection = ril_gprs_connection_find_contextId(netInd->contextId);
+
+	if (!gprs_connection) {
+		ALOGE("%s:Unable to find GPRS connection, aborting", __func__);
+		return;
+	}
+
 	ril_gprs_connection_stop(gprs_connection);
 
 	ril_unsol_data_call_list_changed(0);
@@ -450,7 +483,7 @@ void ipc_proto_suspend_network_ind(void* data)
 	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection, aborting");
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
 		return;
 	}
 
@@ -469,7 +502,7 @@ void ipc_proto_resume_network_ind(void* data)
 	gprs_connection = ril_gprs_connection_find_contextId(netCnf->contextId);
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection, aborting");
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
 		return;
 	}
 
@@ -496,12 +529,12 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	username = ((char **) data)[3];
 	password = ((char **) data)[4];
 
-	ALOGD("Requesting data connection to APN '%s'\n", apn);
+	ALOGD("%s: Requesting data connection to APN '%s'\n", __func__, apn);
 
 	gprs_connection = ril_gprs_connection_start();
 
 	if (!gprs_connection) {
-		ALOGE("Unable to create GPRS connection, aborting");
+		ALOGE("%s: Unable to create GPRS connection, aborting", __func__);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 		return;
 	}
@@ -509,7 +542,7 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	gprs_connection->type = data_call_type_to_proto_type(((char **) data)[6]);
 	if(gprs_connection->type == PROTO_TYPE_NONE)
 	{
-		ALOGE("Unsupported data connection type %s", ((char **) data)[6]);
+		ALOGE("%s: Unsupported data connection type %s", __func__, ((char **) data)[6]);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 		ril_gprs_connection_stop(gprs_connection);
 		return;
@@ -584,7 +617,7 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 	gprs_connection = ril_gprs_connection_find_cid(atoi(cid));
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection, aborting");
+		ALOGE("%s: Unable to find GPRS connection, aborting", __func__);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 	return;
 	}
@@ -613,14 +646,14 @@ void ril_request_last_data_call_fail_cause(RIL_Token t)
 	last_failed_cid = ril_data.state.gprs_last_failed_cid;
 
 	if (!last_failed_cid) {
-		ALOGE("No GPRS connection was reported to have failed");
+		ALOGE("%s: No GPRS connection was reported to have failed", __func__);
 		goto fail_cause_unspecified;
 	}
 
 	gprs_connection = ril_gprs_connection_find_cid(last_failed_cid);
 
 	if (!gprs_connection) {
-		ALOGE("Unable to find GPRS connection");
+		ALOGE("%s: Unable to find GPRS connection", __func__);
 		goto fail_cause_unspecified;
 	}
 
