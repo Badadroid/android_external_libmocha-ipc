@@ -332,6 +332,7 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length);
 void ril_request_last_data_call_fail_cause(RIL_Token t);
 void ril_unsol_data_call_list_changed(RIL_Token t);
 void ril_request_data_call_list(RIL_Token t);
+void proto_stop_context(uint8_t type, uint32_t contextId);
 
 /* NETWORK */
 int ril_net_select_register(char *plmn, tapiNetSearchCnf net_select_entry);

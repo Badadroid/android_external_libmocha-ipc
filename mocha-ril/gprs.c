@@ -310,11 +310,10 @@ void ipc_proto_starting_network_ind(void* data)
 		return;
 	}
 
+	gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
+	ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 	ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-	gprs_connection->token = 0;
-	ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
-
-	ril_unsol_data_call_list_changed(0);
+	gprs_connection->token = RIL_TOKEN_NULL;
 }
 
 #define IN_ADDR_FMT(ip) ((uint8_t*)&ip.s_addr)[0], ((uint8_t*)&ip.s_addr)[1], ((uint8_t*)&ip.s_addr)[2], ((uint8_t*)&ip.s_addr)[3] 
@@ -342,8 +341,8 @@ void ipc_proto_start_network_cnf(void* data)
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-		gprs_connection->token = 0;
-		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+		gprs_connection->token = RIL_TOKEN_NULL;
+		proto_stop_context(gprs_connection->type, gprs_connection->contextId);
 		return;
 	}
 	gprs_connection->active = 2; /* active/physical link up */
@@ -356,13 +355,12 @@ void ipc_proto_start_network_cnf(void* data)
 
 	if(gprs_start_tunneling_thread(gprs_connection) != 0)
 	{
-		//TODO: Close proto on CP side
 		ALOGE("%s: Couldn't start the tunneling thread", __func__);
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-		gprs_connection->token = 0;
-		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+		gprs_connection->token = RIL_TOKEN_NULL;
+		proto_stop_context(gprs_connection->type, gprs_connection->contextId);
 		return;
 	}
 
@@ -370,13 +368,12 @@ void ipc_proto_start_network_cnf(void* data)
 		gprs_connection->prefix_len, gprs_connection->gateway.s_addr, 
 		gprs_connection->dns1.s_addr, gprs_connection->dns2.s_addr) < 0)
 	{
-		//TODO: Close proto on CP side
 		ALOGE("%s: Couldn't ifc_configure on %s, errno: %d (check system logcat)", __func__, gprs_connection->ifname, errno);
 		gprs_connection->fail_cause = PDP_FAIL_ERROR_UNSPECIFIED;
 		ril_data.state.gprs_last_failed_cid = gprs_connection->cid;
 		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-		gprs_connection->token = 0;
-		ril_gprs_connection_stop(gprs_connection); /* We can't rely on RILJ calling last_fail_cause */
+		gprs_connection->token = RIL_TOKEN_NULL;
+		proto_stop_context(gprs_connection->type, gprs_connection->contextId);
 		return;
 	}
 	
@@ -404,11 +401,8 @@ void ipc_proto_start_network_cnf(void* data)
 		setup_data_call_response->ifname, setup_data_call_response->addresses, 
 		setup_data_call_response->gateways, setup_data_call_response->dnses);
 
-
-
 	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, setup_data_call_response, sizeof(RIL_Data_Call_Response_v6));
-
-	ril_unsol_data_call_list_changed(0);
+	gprs_connection->token = RIL_TOKEN_NULL;
 	
 	if(setup_data_call_response->addresses)
 		free(setup_data_call_response->addresses);
@@ -433,15 +427,16 @@ void ipc_proto_stop_network_cnf(void* data)
 		return;
 	}
 
-	ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
-	ril_gprs_connection_stop(gprs_connection);
+	if (gprs_connection->token != RIL_TOKEN_NULL)
+		ril_request_complete(gprs_connection->token, RIL_E_SUCCESS, NULL, 0);
 
-	ril_unsol_data_call_list_changed(0);
+	gprs_connection->token = RIL_TOKEN_NULL;
+	ril_gprs_connection_stop(gprs_connection);
 }
 
 void ipc_proto_stop_network_ind(void* data)
 {
-	ALOGD("%s: Test me!", __func__);
+	ALOGE("%s:GPRS connection suddently got disabled", __func__);
 
 	struct ril_gprs_connection *gprs_connection;
 	protoContext* netInd = (protoContext*)(data);
@@ -453,6 +448,10 @@ void ipc_proto_stop_network_ind(void* data)
 		return;
 	}
 
+	if (gprs_connection->token != RIL_TOKEN_NULL)
+		ril_request_complete(gprs_connection->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+
+	gprs_connection->token = RIL_TOKEN_NULL;
 	ril_gprs_connection_stop(gprs_connection);
 
 	ril_unsol_data_call_list_changed(0);
@@ -544,6 +543,7 @@ void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 	{
 		ALOGE("%s: Unsupported data connection type %s", __func__, ((char **) data)[6]);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+		gprs_connection->token = RIL_TOKEN_NULL;
 		ril_gprs_connection_stop(gprs_connection);
 		return;
 	}
@@ -607,7 +607,6 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 	struct ril_gprs_connection *gprs_connection;
 	char *cid;
 	int rc;
-	protoStopNetwork* stop_network;
 
 	if (data == NULL || length < (int) sizeof(char *))
 		goto error;
@@ -623,13 +622,7 @@ void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 	}
 	gprs_connection->token = t;
 
-	stop_network = (protoStopNetwork *)calloc(1, sizeof(protoStopNetwork));
-
-	stop_network->opMode = PROTO_OPMODE_PS;
-	stop_network->protoType = gprs_connection->type;
-	stop_network->contextId = gprs_connection->contextId;
-
-	proto_stop_network(stop_network);
+	proto_stop_context(gprs_connection->type, gprs_connection->contextId);
 
 	return;
 error:
@@ -659,6 +652,8 @@ void ril_request_last_data_call_fail_cause(RIL_Token t)
 
 	fail_cause = gprs_connection->fail_cause;
 
+
+	gprs_connection->token = RIL_TOKEN_NULL;
 	ril_gprs_connection_stop(gprs_connection);
 
 	goto fail_cause_return;
@@ -731,5 +726,18 @@ void ril_request_data_call_list(RIL_Token t)
 {
 	ALOGE("%s: test me me!", __func__);
 	ril_unsol_data_call_list_changed(t);
+}
+
+void proto_stop_context(uint8_t type, uint32_t contextId)
+{
+	protoStopNetwork* stop_network;
+
+	stop_network = (protoStopNetwork *)calloc(1, sizeof(protoStopNetwork));
+
+	stop_network->opMode = PROTO_OPMODE_PS;
+	stop_network->protoType = type;
+	stop_network->contextId = contextId;
+
+	proto_stop_network(stop_network);
 }
 
