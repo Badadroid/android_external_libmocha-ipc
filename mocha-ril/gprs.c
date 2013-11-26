@@ -730,14 +730,12 @@ void ril_request_data_call_list(RIL_Token t)
 
 void proto_stop_context(uint8_t type, uint32_t contextId)
 {
-	protoStopNetwork* stop_network;
+	protoStopNetwork stop_network;
 
-	stop_network = (protoStopNetwork *)calloc(1, sizeof(protoStopNetwork));
+	stop_network.opMode = PROTO_OPMODE_PS;
+	stop_network.protoType = type;
+	stop_network.contextId = contextId;
 
-	stop_network->opMode = PROTO_OPMODE_PS;
-	stop_network->protoType = type;
-	stop_network->contextId = contextId;
-
-	proto_stop_network(stop_network);
+	proto_stop_network(&stop_network);
 }
 
