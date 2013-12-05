@@ -74,7 +74,7 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 	char *message;
 	const unsigned char *smsc;
 	unsigned char *pdu_hex, *message_tmp;
-	int smsc_length, pdu_length, pdu_hex_length, i, numberLen, send_msg_type;
+	int smsc_length, pdu_length, pdu_hex_length, pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, i, send_msg_type, message_offset;
 	message = NULL;
 	message_tmp = NULL;
 
@@ -107,50 +107,34 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 	pdu_hex = calloc(pdu_hex_length, sizeof(*pdu_hex));
 	hex2bin(pdu, pdu_length, pdu_hex);
 
-	send_msg_type = 0;
-	/* PDU checks for multipart SMS */
-	int pdu_tp_da_index = 2;
-	unsigned char pdu_tp_da_len = pdu_hex[pdu_tp_da_index];
-	if (pdu_tp_da_len > 0xff / 2) {
-		ALOGE("%s: PDU TP-DA Len(0x%x) doesn't match multipart SMS", __func__, pdu_tp_da_len);
-		goto pdu_end;
+	/* PDU parsing */
+	pdu_type = pdu_hex[0];
+	ALOGD("%s: PDU Type is 0x%x", __func__, pdu_type);
 
-	}
+	pdu_tp_da_index = 2;
+	pdu_tp_da_len = pdu_hex[pdu_tp_da_index];
 	ALOGD("%s: PDU TP-DA Len is 0x%x", __func__, pdu_tp_da_len);
 
-	int pdu_tp_udh_index = pdu_tp_da_index + pdu_tp_da_len / 2 + 5;
+	pdu_tp_udl_index = pdu_tp_da_index + pdu_tp_da_len / 2 + 4;
 	if (pdu_tp_da_len % 2 > 0)
-		pdu_tp_udh_index += 1;
-	unsigned char pdu_tp_udh_len = pdu_hex[pdu_tp_udh_index];
-	if (pdu_tp_udh_len > 0xff / 2 || pdu_tp_udh_len < 5) {
-		ALOGD("%s: PDU TP-UDH Len(0x%x) doesn't match multipart SMS", __func__, pdu_tp_udh_len);
-		goto pdu_end;
-	}
-	ALOGD("%s: PDU TP-UDH Len is 0x%x", __func__, pdu_tp_udh_len);
+		pdu_tp_udl_index += 1;
+	pdu_tp_ud_len = pdu_hex[pdu_tp_udl_index];
+	ALOGD("%s: PDU TP-UD Len is 0x%x", __func__, pdu_tp_ud_len);
 
-	int pdu_tp_udh_num_index = pdu_tp_udh_index + 4;
-	unsigned char pdu_tp_udh_num = pdu_hex[pdu_tp_udh_num_index];
-	if (pdu_tp_udh_num > 0xf) {
-		ALOGD("%s: PDU TP-UDH Num(0x%x) doesn't match multipart SMS", __func__, pdu_tp_udh_num);
-		goto pdu_end;
-	}
+	pdu_tp_ud_index = pdu_tp_udl_index + 1;
 
-	int pdu_tp_udh_seq_index = pdu_tp_udh_index + 5;
-	unsigned char pdu_tp_udh_seq = pdu_hex[pdu_tp_udh_seq_index];
-	if (pdu_tp_udh_seq > 0xf || pdu_tp_udh_seq > pdu_tp_udh_num) {
-		ALOGD("%s: PDU TP-UDH Seq(0x%x) doesn't match multipart SMS\n", __func__, pdu_tp_udh_seq);
-		goto pdu_end;
-	}
-	ALOGD("%s: We are sending message %d on %d", __func__, pdu_tp_udh_seq, pdu_tp_udh_num);
-
-	if (pdu_tp_udh_num > 1) {
+	if (pdu_type == 0x41 || pdu_type == 0x61) {
 		ALOGD("%s: We are sending a multi-part message!",  __func__);
+		ALOGD("%s: We are sending message %d on %d", __func__, pdu_hex[pdu_tp_ud_index + 5], pdu_hex[pdu_tp_ud_index + 4]);
 		send_msg_type = 1; //multi-part
 	}
+	else
+		send_msg_type = 0;
 
-pdu_end:
 	DEBUG_I("%s : pdu : %s", __func__, pdu);
-	numberLen = (uint8_t)pdu_tp_da_len;
+
+	/* Convert PDU to tapiNettextInfo structure */
+
 	mess = (tapiNettextInfo *)calloc(1, sizeof(*mess));
 	mess->NPI_ToNumber= 0x01; // 01
 
@@ -159,12 +143,13 @@ pdu_end:
 	else
 		mess->TON_ToNumber= 0x00; // 00 - national
 
-	mess->lengthToNumber = numberLen;
-	if (numberLen % 2 > 0)
-		numberLen = numberLen + 1;
+	mess->lengthToNumber = pdu_tp_da_len;
+
+	if (pdu_tp_da_len % 2 > 0)
+		pdu_tp_da_len = pdu_tp_da_len + 1;
 
 	i = 0;
-	while (i < numberLen) {
+	while (i < pdu_tp_da_len) {
 		mess->szToNumber[i] = pdu[i + 9];
 		if ( pdu[i + 8] != 'f')
 		mess->szToNumber[i+1] =pdu[i + 8];
@@ -193,7 +178,7 @@ pdu_end:
 		i = i + 2;
 	}
 
-	if (pdu_hex[0] == 0x21 || pdu_hex[0] == 0x61)
+	if (pdu_type == 0x21 || pdu_type == 0x61)
 		mess->bSRR = 0x01;
 
 	mess->validityValue = 0xFF;
@@ -202,45 +187,39 @@ pdu_end:
 	if (send_msg_type == 1) {
 		mess->nUDH = 0x01; //multipart SMS
 		mess->bUDHI = 0x01;
-		mess->messageLength = pdu_hex[(numberLen / 2) + 6] - 1;
+		mess->messageLength = pdu_tp_ud_len - 1;
 	}
 	else
-		mess->messageLength = pdu_hex[(numberLen / 2) + 6];
+		mess->messageLength = pdu_tp_ud_len;
 
-	if (pdu_hex[(numberLen / 2) + 5] == 8) {
+	if (pdu_hex[pdu_tp_udl_index - 1] == 8) {
 		DEBUG_I("%s : DCS - Unicode", __func__);
 		mess->alphabetType = 0x03; //Unicode
-		if (send_msg_type == 0) {
-			int k = (numberLen / 2) + 7;
-			for (i = 0; i < pdu_hex[(numberLen / 2) + 6]; i++)
-				mess->messageBody[i] = pdu_hex[i + k];
-		} else {
-			int k = (numberLen / 2) + 8;
-			for (i = 0; i < pdu_hex[(numberLen / 2) + 6] - 1; i++)
-				mess->messageBody[i] = pdu_hex[i + k];
-		}
+		if (send_msg_type == 0)
+			for (i = 0; i < pdu_tp_ud_len; i++)
+				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + i];
+		else
+			for (i = 0; i < pdu_tp_ud_len - 1; i++)
+				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + 1 + i];
 	} else {
 		DEBUG_I("%s : DCS - GSM7", __func__);
 		mess->alphabetType = 0x00; //GSM7
-		int size_offset = (numberLen / 2) + 6;
-		int message_offset = size_offset + 1;
-		int message_size = pdu_hex[size_offset];
 
-		message_tmp = calloc((message_size * 2) + 1, sizeof(*message_tmp));
-		for (i = 0; i < message_size; i++)
-			message_tmp[i] = pdu_hex[i + message_offset];
+		message_tmp = calloc((pdu_tp_ud_len * 2) + 1, sizeof(*message_tmp));
+		for (i = 0; i < pdu_tp_ud_len; i++)
+			message_tmp[i] = pdu_hex[pdu_tp_ud_index + i];
 
-		gsm72ascii(message_tmp, &message, message_size);
+		gsm72ascii(message_tmp, &message, pdu_tp_ud_len);
 
 		if (send_msg_type == 0)	{
-			for (i = 0; i < message_size; i++)
+			for (i = 0; i < pdu_tp_ud_len; i++)
 				mess->messageBody[i] = message[i];
 		} else {
 			mess->messageLength = mess->messageLength - 1;
-			for (i = 0; i < message_size - 2; i++)
+			for (i = 0; i < pdu_tp_ud_len - 2; i++)
 				mess->messageBody[i] = message[i + 2];
 			for (i = 0; i < 5; i++)
-				mess->messageBody[i] = pdu_hex[message_offset + 1 + i];
+				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + 1 + i];
 		}
 		free(message_tmp);
 	}
