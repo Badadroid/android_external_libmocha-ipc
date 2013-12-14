@@ -73,10 +73,9 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 	const char *pdu;
 	char *message;
 	const unsigned char *smsc;
-	unsigned char *pdu_hex, *message_tmp;
+	unsigned char *pdu_hex;
 	int smsc_length, pdu_length, pdu_hex_length, pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, i, send_msg_type, message_offset;
 	message = NULL;
-	message_tmp = NULL;
 
 	if (data == NULL || length < 2 * sizeof(char *))
 		return;
@@ -205,11 +204,7 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 		DEBUG_I("%s : DCS - GSM7", __func__);
 		mess->alphabetType = 0x00; //GSM7
 
-		message_tmp = calloc((pdu_tp_ud_len * 2) + 1, sizeof(*message_tmp));
-		for (i = 0; i < pdu_tp_ud_len; i++)
-			message_tmp[i] = pdu_hex[pdu_tp_ud_index + i];
-
-		gsm72ascii(message_tmp, &message, pdu_tp_ud_len);
+		gsm72ascii(pdu_hex+pdu_tp_ud_index, &message, pdu_tp_ud_len);
 
 		if (send_msg_type == 0)	{
 			for (i = 0; i < pdu_tp_ud_len; i++)
@@ -221,7 +216,6 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 			for (i = 0; i < 5; i++)
 				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + 1 + i];
 		}
-		free(message_tmp);
 	}
 	tapi_nettext_set_net_burst(0);
 	tapi_nettext_send((uint8_t *)mess);
