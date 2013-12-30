@@ -29,21 +29,24 @@ struct tm_tx_packet_header {
 	uint8_t type;
 } __attribute__((__packed__));
 
-struct tm_tx_packet {
-	struct tm_tx_packet_header;
-	uint8_t* buf;
-} __attribute__((__packed__));
-
 struct tm_rx_packet_header {
 	uint16_t len; //not sure
 } __attribute__((__packed__));
 
-struct tm_rx_packet {
-	struct tm_rx_packet_header;
-	uint8_t* buf;
+struct tm_battery_info {
+	uint32_t ADC_val;
+	uint32_t unknown1[2];
+	uint32_t raw_volt;
+	uint32_t unknown2[7];
+	float raw_soc;
+	float adj_soc;
+	uint32_t unknown3;
+	float max_soc;
+	uint8_t bat_gauge;
 } __attribute__((__packed__));
 
 void ipc_parse_tm(struct ipc_client* client, struct modem_io *ipc_frame);
 void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_size);
+void tm_bat_info(struct tm_battery_info *bat_info);
 void ipc_send_rcv_tm();
 #endif

@@ -106,6 +106,8 @@ typedef enum {
 extern uint8_t cached_bcd_imei[9];
 extern char cached_imei[33];
 extern char* fake_apps_version;
+extern char* power_dev_path;
+extern int fd_temp, fd_volt;
 
 typedef void (*ipc_ril_cb)(void* data);
 typedef void (*ipc_client_log_handler_cb)(const char *message, void *user_data);

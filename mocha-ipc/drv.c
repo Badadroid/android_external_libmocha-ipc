@@ -60,6 +60,11 @@ char *fake_apps_version = "S8530JPKA1";
 /*
  * TODO: Read sound config data from file
  */
+int battery_state = BATTERY_CHARGING_DISABLED;
+int usb_cable_state = CABLE_REMOVED;
+int ac_cable_state = CABLE_REMOVED;
+int fd_cap, fd_temp, fd_volt;
+
 int32_t get_nvm_data(void *data, uint32_t size)
 {
 	int32_t fd, retval;
@@ -154,6 +159,109 @@ void handleSystemInfoRequest()
 	DEBUG_I("Sent all the sound packages");
 }
 
+void *battery_thread(void *data)
+{
+	struct timeval select_timeout;
+	char buf[200];
+	int32_t fd_usb, fd_ac, status;
+
+	ipc_batt_thread *batt_thread = (ipc_batt_thread *)data;
+
+	sprintf(buf, "%s%s", power_dev_path, "usb/online");
+	fd_usb = open(buf, O_RDONLY);
+	if (fd_usb < 0)
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
+
+	sprintf(buf, "%s%s", power_dev_path, "ac/online");
+	fd_ac = open(buf, O_RDONLY);
+	if (fd_ac < 0)
+		DEBUG_E("Couldn't open %s", buf);
+
+	sprintf(buf, "%s%s", power_dev_path, "battery/temp");
+	fd_temp = open(buf, O_RDWR);
+	if (fd_temp < 0)
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
+
+	sprintf(buf, "%s%s", power_dev_path, "battery/voltage_now");
+	fd_volt = open(buf, O_RDWR);
+	if (fd_volt < 0)
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
+
+	sprintf(buf, "%s%s", power_dev_path, "battery/capacity");
+	fd_cap = open(buf, O_RDWR);
+	if (fd_cap < 0)
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
+
+	ALOGD("%s: Battery thread initialized", __func__);
+
+	while(1)
+	{
+		if (battery_state == BATTERY_CHARGING_DISABLED)
+			usleep(60000000); // 1 min
+		else
+			usleep(10000000); // 10 sec
+
+		pread(fd_usb, buf, 1, 0);
+		if (buf[0] == '1' && usb_cable_state == CABLE_REMOVED)
+		{
+			DEBUG_I("%s: USB cable inserted", __func__);
+			battery_state = BATTERY_CHARGING;
+			usb_cable_state = CABLE_INSERTED;
+			status = 1; //insert
+		}
+		else if (buf[0] == '0' && usb_cable_state == CABLE_INSERTED)
+		{
+			DEBUG_I("%s: USB cable removed", __func__);
+			battery_state = BATTERY_CHARGING_DISABLED;
+			usb_cable_state = CABLE_REMOVED;
+			status = 2; //remove
+		}
+		if (status == 0)
+		{
+			pread(fd_ac, buf, 1, 0);
+			if (buf[0] == '1' && ac_cable_state == CABLE_REMOVED)
+			{
+				DEBUG_I("%s: AC cable inserted", __func__);
+				battery_state = BATTERY_CHARGING;
+				ac_cable_state = CABLE_INSERTED;
+				status = 1; //insert
+			}
+			else if (buf[0] == '0' && ac_cable_state == CABLE_INSERTED)
+			{
+				DEBUG_I("%s: AC cable removed", __func__);
+				battery_state = BATTERY_CHARGING_DISABLED;
+				ac_cable_state = CABLE_REMOVED;
+				status = 2; //remove
+			}
+		}
+		if (status != 0)
+		{
+			drv_send_packet(TA_CHANGE_AP, (uint8_t*)&status, 4);
+			status = 0;
+		}
+		tm_send_packet(0x1,0xA, 0, 0);
+	}
+}
+
+void battery_thread_start(void)
+{
+	struct ipc_batt_thread *batt_thread;
+	pthread_attr_t attr;
+	int rd;
+
+	batt_thread = calloc(1, sizeof(struct ipc_batt_thread));
+
+	pthread_mutex_init(&batt_thread->mutex, NULL);
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	rd = pthread_create(&batt_thread->thread, &attr, battery_thread, (void *) batt_thread);
+	if (rd == 0)
+		batt_thread->thread_state = 1;
+	else
+		DEBUG_E("%s: Battery thread initialization failed", __func__);
+}
+
 void send_ta_info()
 {
 	char buf[200];
@@ -186,25 +294,28 @@ void send_ta_info()
 	}
 	
 	drv_send_packet(TA_INFO_RESP, (uint8_t*)&status, 2);
+
+	battery_thread_start();
 }
 
 void handleFuelGaugeStatus(uint8_t percentage)
 {
-	char buf[200];
+	char buf[10];
 	int32_t fd, len;
+	int32_t status = 0xB;
+
 	DEBUG_I("%s: Percentage: %d%%", __func__, percentage);
-	sprintf(buf, "%s%s", power_dev_path, "battery/capacity");
-	fd = open(buf, O_RDWR);
-	if(fd < 0)
-	{
-		DEBUG_E("%s: Error: %s Failed to open %s.", __func__, strerror(errno), buf);
-		return;
-	}
+
 	sprintf(buf, "%d", percentage);
 	len = strlen(buf);
-	if(write(fd, buf, strlen(buf)) != len)	
+	if(write(fd_cap, buf, strlen(buf)) != len)
 		DEBUG_E("%s: Failed to write battery capacity, error: %s", __func__, strerror(errno));
-	close(fd);
+
+	if (percentage == 100 && battery_state == BATTERY_CHARGING)
+	{
+		battery_state = BATTERY_FULL;
+		drv_send_packet(TA_CHANGE_AP, (uint8_t*)&status, 4);
+	}
 }
 
 void ipc_parse_drv(struct ipc_client* client, struct modem_io *ipc_frame)

@@ -34,6 +34,7 @@
 
 #include <radio.h>
 #include <tm.h>
+#include <drv.h>
 
 #define LOG_TAG "RIL-Mocha-TM"
 #include <utils/Log.h>
@@ -41,10 +42,11 @@
 
 void ipc_parse_tm(struct ipc_client* client, struct modem_io *ipc_frame)
 {
-	DEBUG_I("Entering");
-
-    DEBUG_I("leaving");
-
+	DEBUG_I("Test_Mode Parser");
+	DEBUG_I("Frame type = 0x%x\n Frame length = 0x%x\n", ipc_frame->cmd, ipc_frame->datasize);
+	ipc_hex_dump(client, ipc_frame->data, ipc_frame->datasize);
+	if (ipc_frame->datasize == 0x8c)
+		tm_bat_info((struct tm_battery_info *)(ipc_frame->data));
 }
 
 void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_size)
@@ -53,12 +55,33 @@ void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_siz
 	pkt.data = malloc(data_size + sizeof(struct tm_tx_packet_header));	
 	pkt.data[0] = group;
 	pkt.data[1] = type;
-	memcpy(pkt.data + 2, data, data_size);
+	if(data_size > 0)
+		memcpy(pkt.data + 2, data, data_size);
 	pkt.magic = 0xCAFECAFE;
 	pkt.cmd = FIFO_PKT_TESTMODE;
 	pkt.datasize = data_size + 2;
 	ipc_send(&pkt);
 	free(pkt.data);
+}
+
+void tm_bat_info(struct tm_battery_info *bat_info)
+{
+	DEBUG_I("Battery info: \n ADC_val = %d\n raw_volt= %d\n raw_soc= %f%%\n adj_soc=%f%%\n max_soc=%f%%\n", bat_info->ADC_val, bat_info->raw_volt, bat_info->raw_soc,bat_info->adj_soc, bat_info->max_soc);
+	char buf[20];
+	int32_t len;
+
+	sprintf(buf, "%d", bat_info->ADC_val);
+	len = strlen(buf);
+	if(write(fd_temp, buf, strlen(buf)) != len)
+		DEBUG_E("%s: Failed to write battery ADC_val, error: %s", __func__, strerror(errno));
+
+	sprintf(buf, "%d", bat_info->raw_volt * 1000);
+	len = strlen(buf);
+	if(write(fd_volt, buf, strlen(buf)) != len)
+		DEBUG_E("%s: Failed to write battery raw_volt, error: %s", __func__, strerror(errno));
+
+	handleFuelGaugeStatus(bat_info->bat_gauge);
+
 }
 
 void ipc_send_rcv_tm()
