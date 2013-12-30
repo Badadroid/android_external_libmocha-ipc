@@ -30,6 +30,7 @@
 #endif
 
 #include <radio.h>
+#include <pthread.h>
 
 struct drvPacketHeader {
 	uint8_t drvPacketType;
@@ -51,6 +52,23 @@ struct drvRequest {
 	struct drvPacketHeader header;
 	uint8_t *respBuf;
 } __attribute__((__packed__));
+
+typedef enum {
+       CABLE_REMOVED                           = 0,
+       CABLE_INSERTED                          = 1,
+} ril_cable_state;
+
+typedef enum {
+       BATTERY_CHARGING_DISABLED               = 0,
+       BATTERY_CHARGING                        = 1,
+       BATTERY_FULL                            = 2,
+} ril_battery_state;
+
+typedef struct ipc_batt_thread {
+       pthread_t thread;
+       pthread_mutex_t mutex;
+       int thread_state;
+} ipc_batt_thread;
 
 void ipc_parse_drv(struct ipc_client* client, struct modem_io *ipc_frame);
 void drv_send_packet(uint8_t type, uint8_t *data, int32_t data_size);

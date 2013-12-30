@@ -31,6 +31,7 @@
 #include <proto.h>
 #include <sound.h>
 #include <bt.h>
+#include <tm.h>
 
 #define LOG_TAG "RIL-Mocha-IPC-PARSER"
 #include <utils/Log.h>
@@ -38,52 +39,55 @@
 void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 {
 	switch(ipc_frame->cmd)
-    {
+	{
 		case FIFO_PKT_SIM:
 			ipc_parse_sim(client, ipc_frame);
-		break;
+			break;
 		case FIFO_PKT_PROTO:
 			ipc_parse_proto(client, ipc_frame);
-		break;
-        case FIFO_PKT_TAPI:
-        	ipc_parse_tapi(client, ipc_frame);
-        break;
-        case FIFO_PKT_FILE:
-        	ipc_parse_fm(client, ipc_frame);
-			/*
-        	if (ret)
-        	{
-        		modem_send_tapi_init(ipc_frame);
-        		sim_atk_open(0);
-        		sim_open_to_modem(0);
-        	}*/
-        break;
+			break;
+		case FIFO_PKT_TAPI:
+			ipc_parse_tapi(client, ipc_frame);
+			break;
+		case FIFO_PKT_FILE:
+			ipc_parse_fm(client, ipc_frame);
+				/*
+			if (ret)
+			{
+				modem_send_tapi_init(ipc_frame);
+				sim_atk_open(0);
+				sim_open_to_modem(0);
+			}*/
+			break;
 		case FIFO_PKT_SOUND:
-            ipc_parse_sound(client, ipc_frame);
-		break;
-        case FIFO_PKT_DVB_H_DebugLevel:
-            ipc_parse_dbg_level(client, ipc_frame);
-        break;
-        case FIFO_PKT_BOOT:
-            ipc_parse_boot(client, ipc_frame);
-        break;
+			ipc_parse_sound(client, ipc_frame);
+			break;
+		case FIFO_PKT_DVB_H_DebugLevel:
+			ipc_parse_dbg_level(client, ipc_frame);
+			break;
+		case FIFO_PKT_BOOT:
+			ipc_parse_boot(client, ipc_frame);
+			break;
 		case FIFO_PKT_SYSTEM:
 			ipc_parse_system(client, ipc_frame);
-		break;
-        case FIFO_PKT_DRV:
-        	ipc_parse_drv(client, ipc_frame);
-        break;
-        case FIFO_PKT_DEBUG:
-        	ipc_parse_dbg(client, ipc_frame);
-	        break;
-        case FIFO_PKT_BLUETOOTH:
-        	ipc_parse_bt(client, ipc_frame);
- 	       break;
-        default :
-        	DEBUG_I("Packet type 0x%x not yet handled\n", ipc_frame->cmd);
-        	DEBUG_I("Frame header = 0x%x\n Frame type = 0x%x\n Frame length = 0x%x\n", 
-			ipc_frame->magic, ipc_frame->cmd, ipc_frame->datasize);
-        	ipc_hex_dump(client, ipc_frame->data, ipc_frame->datasize);
+			break;
+		case FIFO_PKT_DRV:
+			ipc_parse_drv(client, ipc_frame);
+			break;
+		case FIFO_PKT_DEBUG:
+			ipc_parse_dbg(client, ipc_frame);
+		        break;
+		case FIFO_PKT_BLUETOOTH:
+			ipc_parse_bt(client, ipc_frame);
+			break;
+		case FIFO_PKT_TESTMODE:
+			ipc_parse_tm(client, ipc_frame);
+			break;
+		default :
+			DEBUG_I("Packet type 0x%x not yet handled\n", ipc_frame->cmd);
+			DEBUG_I("Frame header = 0x%x\n Frame type = 0x%x\n Frame length = 0x%x\n",
+				ipc_frame->magic, ipc_frame->cmd, ipc_frame->datasize);
+			ipc_hex_dump(client, ipc_frame->data, ipc_frame->datasize);
 
-    }
+	}
 }
