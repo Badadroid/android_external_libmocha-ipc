@@ -73,8 +73,21 @@ struct lbsPacketHeader {
 	uint32_t subType; //seems to be always 1
 } __attribute__((__packed__));
 
+typedef struct {
+	uint32_t arg;
+	uint32_t gps_mode;
+	uint32_t gps_option;
+	uint32_t unknown1[2];
+	uint32_t gps_h_accuracy;
+	uint32_t gps_v_accuracy;
+	uint32_t device_type;
+	uint32_t unknown2;
+} __attribute__((__packed__)) lbsGetPosition;
+
 void lbs_init(void);
 void lbs_send_init(uint32_t var);
+void lbs_delete_gps_data(void);
+void lbs_get_position(void);
 void lbs_send_packet(uint32_t type, uint32_t size, uint32_t subType, void* buf);
 
 #endif
