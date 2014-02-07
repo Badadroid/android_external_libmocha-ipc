@@ -124,6 +124,7 @@ mocha-ril_files := \
 	mocha-ril/ss.c \
 	mocha-ril/snd.c \
 	mocha-ril/gprs.c \
+	mocha-ril/gps.c \
 	mocha-ril/util.c
 
 LOCAL_SHARED_LIBRARIES := \

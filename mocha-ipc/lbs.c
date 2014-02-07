@@ -106,18 +106,3 @@ void lbs_delete_gps_data(void)
 {
 	lbs_send_packet(LBS_PKT_DELETE_GPS_DATA, 0, 1, 0);
 }
-
-void lbs_get_position(void)
-{
-	lbsGetPosition get_position;
-	get_position.arg = 0x1;
-	get_position.gps_mode = 0x1;
-	get_position.gps_option = 0x4;
-	get_position.unknown1[0] = 0x2;
-	get_position.unknown1[1] = 0xff;
-	get_position.gps_h_accuracy = 0x03E8;
-	get_position.gps_v_accuracy = 0x01F4;
-	get_position.device_type = 0x3;
-	get_position.unknown2 = 0x1;
-	lbs_send_packet(LBS_PKT_GET_POSITION, 0x24, 1, (void*)&get_position);
-}

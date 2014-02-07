@@ -299,6 +299,9 @@ void srs_dispatch(struct srs_message *message)
 		case SRS_SND_PCM_IF_CTRL:
 			srs_snd_pcm_if_ctrl(message);
 			break;
+		case SRS_GPS_NAVIGATION:
+			srs_gps_navigation(message);
+			break;
 		default:
 			ALOGD("Unhandled command: (%04x)", message->command);
 			break;
