@@ -32,9 +32,19 @@
 #include <sound.h>
 #include <bt.h>
 #include <tm.h>
+#include <lbs.h>
 
 #define LOG_TAG "RIL-Mocha-IPC-PARSER"
 #include <utils/Log.h>
+
+uint32_t multiFramePosition = 0;
+struct modem_io multi_packet;
+
+typedef struct {
+	uint32_t unknown;
+	uint32_t size;
+	uint32_t type;
+} __attribute__((__packed__)) multiFrameHeader;
 
 void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 {
@@ -82,6 +92,31 @@ void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 			break;
 		case FIFO_PKT_TESTMODE:
 			ipc_parse_tm(client, ipc_frame);
+			break;
+		case FIFO_PKT_FIFO_INTERNAL:
+			if (ipc_frame->datasize == 0xC)
+			{
+				multiFrameHeader* mf_header = (multiFrameHeader *)(ipc_frame->data);
+				DEBUG_I("Multi Frame header: Frame type = 0x%x Frame length = 0x%x",
+					mf_header->type, mf_header->size);
+				multi_packet.data = malloc(mf_header->size);
+				multi_packet.magic = 0xCAFECAFE;
+				multi_packet.cmd = mf_header->type;
+				multi_packet.datasize = mf_header->size;
+				multiFramePosition = 0;
+				return;
+			}
+			memcpy(multi_packet.data + multiFramePosition, ipc_frame->data, ipc_frame->datasize);
+			multiFramePosition += ipc_frame->datasize;
+			if (multi_packet.datasize == multiFramePosition)
+			{
+				ipc_dispatch(client, &multi_packet);
+				free(multi_packet.data);
+				multiFramePosition = 0;
+			}
+			break;
+		case FIFO_PKT_LBS:
+			ipc_parse_lbs(client, ipc_frame);
 			break;
 		default :
 			DEBUG_I("Packet type 0x%x not yet handled\n", ipc_frame->cmd);

@@ -43,6 +43,33 @@ void lbs_init(void)
 	lbs_send_init(1);
 }
 
+void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame)
+{
+	struct lbsPacketHeader *rx_header;
+
+	rx_header = (struct lbsPacketHeader *)(ipc_frame->data);
+
+	switch (rx_header->type)
+	{
+		case LBS_PKT_GET_POSITION_IND:
+			DEBUG_I("LBS_PKT_GET_POSITION_IND received");
+			break;
+		case LBS_PKT_CANCEL_POSITION_IND:
+			DEBUG_I("LBS_PKT_CANCEL_POSITION_IND received");
+			break;
+		case LBS_PKT_STATE_IND:
+			DEBUG_I("LBS_PKT_STATE_IND received");
+			break;
+		case LBS_PKT_XTRA_INJECT_DATA_IND:
+			DEBUG_I("LBS_PKT_XTRA_INJECT_DATA_IND received");
+			break;
+		default:
+			DEBUG_I("Undefined LBS Packet 0x%x received", rx_header->type);
+			break;
+	}
+	hex_dump(ipc_frame->data, ipc_frame->datasize);
+}
+
 uint8_t lbsSendBuf[0x100C];
 
 void lbs_send_packet(uint32_t type, uint32_t size, uint32_t subType, void* buf)
