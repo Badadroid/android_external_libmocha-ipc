@@ -53,6 +53,7 @@ void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame)
 	{
 		case LBS_PKT_GET_POSITION_IND:
 			DEBUG_I("LBS_PKT_GET_POSITION_IND received");
+			ipc_invoke_ril_cb(LBS_GET_POSITION_IND, (void*)(ipc_frame->data + sizeof(struct lbsPacketHeader)));
 			break;
 		case LBS_PKT_CANCEL_POSITION_IND:
 			DEBUG_I("LBS_PKT_CANCEL_POSITION_IND received");

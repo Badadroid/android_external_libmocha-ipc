@@ -24,6 +24,8 @@
 #include <types.h>
 #include <radio.h>
 
+#define MAX_NUM_OF_SAT 32
+
 enum  LBS_PKT_TYPE
 {
 	LBS_PKT_INIT				= 0x0,
@@ -67,6 +69,12 @@ enum  LBS_PKT_TYPE
 	LBS_PKT_XTRA_INJECT_DATA_IND		= 0x27,
 };
 
+enum LBS_POSITION_DATA
+{
+	LBS_POSITION_DATA_INVALID	= 1,
+	LBS_POSITION_DATA_NEW		= 2,
+};
+
 struct lbsPacketHeader {
 	uint32_t type;
 	uint32_t size;
@@ -83,6 +91,40 @@ typedef struct {
 	uint32_t device_type;
 	uint32_t unknown2;
 } __attribute__((__packed__)) lbsGetPosition;
+
+typedef struct {
+	uint16_t prn;
+	uint16_t elevation;
+	uint32_t azimuth;
+	uint32_t snr;
+} __attribute__((__packed__)) satelliteInfo;
+
+typedef struct {
+	double latitude;
+	double longitude;
+	float accuracy1;
+	float accuracy2;
+	double altitude;
+	double trueCourse;
+	double speed;
+	uint8_t unknown1[8];
+	uint32_t years;
+	uint32_t month;
+	uint32_t day;
+	uint32_t hours;
+	uint32_t minutes;
+	uint32_t seconds;
+	uint32_t timestamp;
+	uint8_t unknown2[8];
+	uint32_t lbsPositionDataType;
+	uint8_t numOfSatToFix;
+	uint8_t satIdtoFix[15];
+	uint32_t pdop;
+	uint32_t hdop;
+	uint32_t vdop;
+	uint32_t numOfSatInView;
+	satelliteInfo satInfo[MAX_NUM_OF_SAT];
+} __attribute__((__packed__)) lbsGetPositionInd;
 
 void lbs_init(void);
 void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame);

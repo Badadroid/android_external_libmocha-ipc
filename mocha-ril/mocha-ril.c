@@ -546,6 +546,7 @@ void ril_install_ipc_callbacks(void)
 	ipc_register_ril_cb(NETTEXT_SEND_CALLBACK, ipc_sms_send_status);
 	ipc_register_ril_cb(SS_USSD_CALLBACK, ipc_ss_ussd_response);
 	ipc_register_ril_cb(SS_ERROR, ipc_ss_error_response);
+	ipc_register_ril_cb(LBS_GET_POSITION_IND, ipc_lbs_get_position_ind);
 	ipc_register_ril_cb(PROTO_STARTING_NETWORK_IND, ipc_proto_starting_network_ind);
 	ipc_register_ril_cb(PROTO_START_NETWORK_CNF, ipc_proto_start_network_cnf);
 	ipc_register_ril_cb(PROTO_STOP_NETWORK_CNF, ipc_proto_stop_network_cnf);

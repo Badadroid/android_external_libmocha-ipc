@@ -26,6 +26,15 @@
 #include "util.h"
 #include <lbs.h>
 
+void ipc_lbs_get_position_ind(void* data)
+{
+	lbsGetPositionInd* get_pos = (lbsGetPositionInd*)(data);
+	ALOGD("%s: latitude = %f, longitude = %f", __func__, get_pos->latitude, get_pos->longitude);
+	ALOGD("%s: altitude = %f, speed = %f, timestamp = %d", __func__, get_pos->altitude, get_pos->speed, get_pos->timestamp);
+	ALOGD("%s: lbsPositionDataType = %d, numOfSatInView = %d, numOfSatToFix = %d", __func__, get_pos->lbsPositionDataType, get_pos->numOfSatInView, get_pos->numOfSatToFix);
+	//FIXME: send information in GPS HAL
+}
+
 void srs_gps_navigation(struct srs_message *message)
 {
 	struct srs_snd_enable_disable_packet *data = (struct srs_snd_enable_disable_packet *) message->data;
