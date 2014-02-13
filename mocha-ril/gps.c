@@ -24,6 +24,7 @@
 
 #include "mocha-ril.h"
 #include "util.h"
+#include <hardware/gps.h>
 #include <lbs.h>
 
 void ipc_lbs_get_position_ind(void* data)
@@ -32,7 +33,45 @@ void ipc_lbs_get_position_ind(void* data)
 	ALOGD("%s: latitude = %f, longitude = %f", __func__, get_pos->latitude, get_pos->longitude);
 	ALOGD("%s: altitude = %f, speed = %f, timestamp = %d", __func__, get_pos->altitude, get_pos->speed, get_pos->timestamp);
 	ALOGD("%s: lbsPositionDataType = %d, numOfSatInView = %d, numOfSatToFix = %d", __func__, get_pos->lbsPositionDataType, get_pos->numOfSatInView, get_pos->numOfSatToFix);
-	//FIXME: send information in GPS HAL
+
+	GpsSvStatus status;
+	unsigned int i;
+
+	memset(&status, 0, sizeof(GpsSvStatus));
+	status.size = sizeof(GpsSvStatus);
+	status.num_svs = get_pos->numOfSatInView;
+
+	for (i = 0; i < get_pos->numOfSatInView; i++)
+	{
+		status.sv_list[i].size = sizeof(GpsSvInfo);
+		status.sv_list[i].prn = get_pos->satInfo[i].prn;
+		status.sv_list[i].snr = get_pos->satInfo[i].snr;
+		status.sv_list[i].elevation = get_pos->satInfo[i].elevation;
+		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
+
+		//FIXME: Send GpsSvStatus in GPS HAL
+	}
+
+	if (get_pos->lbsPositionDataType == LBS_POSITION_DATA_NEW)
+	{
+		GpsLocation location;
+
+		memset(&location, 0, sizeof(location));
+
+		location.size = sizeof(GpsLocation);
+
+		location.timestamp = get_pos->timestamp;
+		// convert gps time to epoch time ms
+		location.timestamp += 315964800; // 1/1/1970 to 1/6/1980
+		location.timestamp -= 15; // 15 leap seconds between 1980 and 2011
+		location.timestamp *= 1000; //ms
+
+		location.flags |= GPS_LOCATION_HAS_LAT_LONG;
+		location.latitude = get_pos->latitude;
+		location.longitude = get_pos->longitude;
+
+		//FIXME: Send GpsLocation in GPS HAL
+	}
 }
 
 void srs_gps_navigation(struct srs_message *message)
