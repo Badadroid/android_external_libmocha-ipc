@@ -60,6 +60,7 @@ void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame)
 			break;
 		case LBS_PKT_STATE_IND:
 			DEBUG_I("LBS_PKT_STATE_IND received");
+			ipc_invoke_ril_cb(LBS_STATE_IND, (void*)(ipc_frame->data + sizeof(struct lbsPacketHeader)));
 			break;
 		case LBS_PKT_XTRA_INJECT_DATA_IND:
 			DEBUG_I("LBS_PKT_XTRA_INJECT_DATA_IND received");

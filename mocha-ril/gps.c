@@ -48,9 +48,9 @@ void ipc_lbs_get_position_ind(void* data)
 		status.sv_list[i].snr = get_pos->satInfo[i].snr;
 		status.sv_list[i].elevation = get_pos->satInfo[i].elevation;
 		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
-
-		//FIXME: Send GpsSvStatus in GPS HAL
 	}
+
+	//FIXME: Send GpsSvStatus in GPS HAL to void update_gps_svstatus(GpsSvStatus *svstatus)
 
 	if (get_pos->lbsPositionDataType == LBS_POSITION_DATA_NEW)
 	{
@@ -70,8 +70,31 @@ void ipc_lbs_get_position_ind(void* data)
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
-		//FIXME: Send GpsLocation in GPS HAL
+		//FIXME: Send GpsLocation in GPS HAL to void update_gps_location(GpsLocation *location)
 	}
+}
+
+void ipc_lbs_state_ind(void* data)
+{
+	uint32_t lbs_state = *((uint32_t*)data);
+	GpsStatusValue value;
+
+	switch (lbs_state)
+	{
+		case 1:
+			value = GPS_STATUS_SESSION_BEGIN;
+			break;
+		case 0:
+			value = GPS_STATUS_SESSION_END;
+			break;
+		default:
+			ALOGD("%s unknown lbs_state = %d", __func__, lbs_state);
+			value = GPS_STATUS_SESSION_END;
+			break;
+	}
+
+	ALOGD("%s GpsStatusValue = %d", __func__, value);
+	//FIXME: Send GpsStatusValue in GPS_HAL to void update_gps_status(GpsStatusValue value)
 }
 
 void srs_gps_navigation(struct srs_message *message)
