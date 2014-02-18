@@ -50,7 +50,7 @@ void ipc_lbs_get_position_ind(void* data)
 		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
 	}
 
-	//FIXME: Send GpsSvStatus in GPS HAL to void update_gps_svstatus(GpsSvStatus *svstatus)
+	srs_send(SRS_GPS_SV_STATUS, sizeof(GpsSvStatus), &status);
 
 	if (get_pos->lbsPositionDataType == LBS_POSITION_DATA_NEW)
 	{
@@ -70,7 +70,7 @@ void ipc_lbs_get_position_ind(void* data)
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
-		//FIXME: Send GpsLocation in GPS HAL to void update_gps_location(GpsLocation *location)
+		srs_send(SRS_GPS_LOCATION, sizeof(GpsLocation), &location);
 	}
 }
 
@@ -97,7 +97,7 @@ void ipc_lbs_state_ind(void* data)
 	//FIXME: Send GpsStatusValue in GPS_HAL to void update_gps_status(GpsStatusValue value)
 }
 
-void srs_gps_navigation(struct srs_message *message)
+void srs_gps_navigation_mode(struct srs_message *message)
 {
 	struct srs_snd_enable_disable_packet *data = (struct srs_snd_enable_disable_packet *) message->data;
 

@@ -409,6 +409,6 @@ void srs_snd_pcm_if_ctrl(struct srs_message *message);
 /* GPS */
 void ipc_lbs_get_position_ind(void* data);
 void ipc_lbs_state_ind(void* data);
-void srs_gps_navigation(struct srs_message *message);
+void srs_gps_navigation_mode(struct srs_message *message);
 
 #endif
