@@ -276,7 +276,7 @@ void ril_tokens_check(void)
 	}
 }
 
-void srs_dispatch(struct srs_message *message)
+void srs_dispatch(struct srs_client_info *client, struct srs_message *message)
 {
 	if(message == NULL)
 		return;
@@ -285,7 +285,10 @@ void srs_dispatch(struct srs_message *message)
 	
 	switch(message->command) {
 		case SRS_CONTROL_PING:
-			srs_control_ping(message);
+			srs_control_ping(client, message);
+			break;
+		case SRS_GPS_HELLO:
+			client->type = SRS_CLIENT_TYPE_GPS;
 			break;
 		case SRS_SND_SET_VOLUME:
 			srs_snd_set_volume(message);

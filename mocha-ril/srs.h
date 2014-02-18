@@ -34,15 +34,18 @@
 #define SRS_CLIENT_LOCK() pthread_mutex_lock(&client_data->mutex)
 #define SRS_CLIENT_UNLOCK() pthread_mutex_unlock(&client_data->mutex)
 
+#define SRS_CLIENT_TYPE_NORMAL 0
+#define SRS_CLIENT_TYPE_GPS 1
+
 struct srs_client_info {
 	int fd;
+	int type;
 };
 
 struct srs_client_data {
 	struct ril_client *client;
 
 	int server_fd;
-	int client_fd;
 
 	struct list_head *clients;
 
@@ -53,7 +56,8 @@ struct srs_client_data {
 
 extern struct ril_client_funcs srs_client_funcs;
 
-int srs_send(unsigned short command, void *data, int length);
-void srs_control_ping(struct srs_message *message);
+int srs_send(struct srs_client_info *client, unsigned short command, void *data, int length);
+void srs_control_ping(struct srs_client_info *client, struct srs_message *message);
+struct srs_client_info *srs_client_info_find_type(struct srs_client_data *client_data, int type);
 
 #endif

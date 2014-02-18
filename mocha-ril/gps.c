@@ -50,7 +50,7 @@ void ipc_lbs_get_position_ind(void* data)
 		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
 	}
 
-	srs_send(SRS_GPS_SV_STATUS, sizeof(GpsSvStatus), &status);
+	srs_send(find_srs_gps_client(), SRS_GPS_SV_STATUS, &status, sizeof(GpsSvStatus));
 
 	if (get_pos->lbsPositionDataType == LBS_POSITION_DATA_NEW)
 	{
@@ -70,7 +70,7 @@ void ipc_lbs_get_position_ind(void* data)
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
-		srs_send(SRS_GPS_LOCATION, sizeof(GpsLocation), &location);
+		srs_send(find_srs_gps_client(), SRS_GPS_LOCATION, &location, sizeof(GpsLocation));
 	}
 }
 
@@ -121,4 +121,15 @@ void srs_gps_navigation_mode(struct srs_message *message)
 		ALOGD("%s GPS navigation disabled", __func__);
 		lbs_send_packet(LBS_PKT_CANCEL_POSITION, 0, 1, 0);
 	}
+}
+
+struct srs_client_info *find_srs_gps_client(void)
+{
+	struct srs_client_data *client_data;
+
+	if (ril_data.srs_client == NULL || ril_data.srs_client->data == NULL)
+		return NULL;
+
+	client_data = (struct srs_client_data *) ril_data.srs_client->data;
+	return srs_client_info_find_type(client_data, SRS_CLIENT_TYPE_GPS);
 }

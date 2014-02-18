@@ -276,7 +276,7 @@ int ril_modem_check(void);
  * Clients dispatch functions
  */
 
-void srs_dispatch(struct srs_message *message);
+void srs_dispatch(struct srs_client_info *client, struct srs_message *message);
 
 /* PWR */
 void ipc_cp_system_start(void* data);
@@ -400,7 +400,6 @@ void ipc_ss_error_response(void* data);
 
 /* SND */
 void ril_request_set_mute(RIL_Token t, void *data, size_t datalen);
-void srs_control_ping(struct srs_message *message);
 void srs_snd_set_volume(struct srs_message *message);
 void srs_snd_set_audio_path(struct srs_message *message);
 void srs_snd_1mic_ns_ctrl(struct srs_message *message);
@@ -410,5 +409,6 @@ void srs_snd_pcm_if_ctrl(struct srs_message *message);
 void ipc_lbs_get_position_ind(void* data);
 void ipc_lbs_state_ind(void* data);
 void srs_gps_navigation_mode(struct srs_message *message);
+struct srs_client_info *find_srs_gps_client(void);
 
 #endif
