@@ -50,7 +50,7 @@ void ipc_lbs_get_position_ind(void* data)
 		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
 	}
 
-	srs_send(SRS_GPS_SV_STATUS, sizeof(GpsSvStatus), &status);
+	srs_send(SRS_GPS_SV_STATUS, &status, sizeof(GpsSvStatus));
 
 	if (get_pos->lbsPositionDataType == LBS_POSITION_DATA_NEW)
 	{
@@ -70,7 +70,7 @@ void ipc_lbs_get_position_ind(void* data)
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
-		srs_send(SRS_GPS_LOCATION, sizeof(GpsLocation), &location);
+		srs_send(SRS_GPS_LOCATION, &location, sizeof(GpsLocation));
 	}
 }
 
