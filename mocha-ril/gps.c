@@ -27,6 +27,8 @@
 #include <hardware/gps.h>
 #include <lbs.h>
 
+static uint8_t MEASUREMENT_PRECISION = 10; // meters
+
 void ipc_lbs_get_position_ind(void* data)
 {
 	lbsGetPositionInd* get_pos = (lbsGetPositionInd*)(data);
@@ -70,6 +72,9 @@ void ipc_lbs_get_position_ind(void* data)
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
+		location.flags |= GPS_LOCATION_HAS_ACCURACY;
+		location.accuracy = get_pos->hdop / 10.0f / 2.0f * (float)MEASUREMENT_PRECISION;
+
 		srs_send(find_srs_gps_client(), SRS_GPS_LOCATION, &location, sizeof(GpsLocation));
 	}
 }
@@ -93,8 +98,7 @@ void ipc_lbs_state_ind(void* data)
 			break;
 	}
 
-	ALOGD("%s GpsStatusValue = %d", __func__, value);
-	//FIXME: Send GpsStatusValue in GPS_HAL to void update_gps_status(GpsStatusValue value)
+	srs_send(find_srs_gps_client(), SRS_GPS_STATE, &value, sizeof(GpsStatusValue));
 }
 
 void srs_gps_navigation_mode(struct srs_message *message)
