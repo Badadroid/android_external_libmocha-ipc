@@ -296,11 +296,11 @@ int srs_send(struct srs_client_info *client, unsigned short command, void *data,
 	client_data = (struct srs_client_data *) ril_data.srs_client->data;
 
 	ALOGD("SEND SRS: fd=%d command=%d length=%d", client->fd, command, length);
-	if (data != NULL && length > 0) {
+/*	if (data != NULL && length > 0) {
 		ALOGD("==== SRS DATA DUMP ====");
 		hex_dump(data, length);
 		ALOGD("=======================");
-	}
+	} */
 
 	return srs_client_send(client_data, client, command, data, length);
 }

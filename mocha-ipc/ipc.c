@@ -87,7 +87,7 @@ void ipc_register_ril_cb(int type, ipc_ril_cb cb)
 
 void ipc_invoke_ril_cb(int type, void* data)
 {
-	DEBUG_I("Invoking RIL callback of type %d", type);
+	//DEBUG_I("Invoking RIL callback of type %d", type);
 	if(ipc_ril_cb_map[type])
 	{
 		ipc_ril_cb_map[type](data);
