@@ -275,8 +275,19 @@ void ipc_cell_info(void* data)
 	if(cellInfo->bPLMNChanged)
 	{
 		uint16_t mcc = ((cellInfo->plmnId[0] & 0xF) * 100) + (((cellInfo->plmnId[0] >> 4) & 0xF) * 10) + (((cellInfo->plmnId[1]) & 0xF) * 1);
-		uint16_t mnc = ((cellInfo->plmnId[2] & 0xF) * 10) + (((cellInfo->plmnId[2] >> 4) & 0xF) * 1);
-		sprintf(ril_data.state.proper_plmn, "%3u%2u", mcc, mnc);
+
+		int plmn_dec = 0;
+		if (((cellInfo->plmnId[1] >> 4) & 0xF) == 0xF)
+		{
+			uint16_t mnc = ((cellInfo->plmnId[2] & 0xF) * 10) + (((cellInfo->plmnId[2] >> 4) & 0xF) * 1);
+			plmn_dec = mcc * 100 + mnc;
+		}
+		else
+		{
+			uint16_t mnc = ((cellInfo->plmnId[2] & 0xF) * 100) + (((cellInfo->plmnId[2] >> 4) & 0xF) * 10) + (((cellInfo->plmnId[1] >> 4) & 0xF) * 1);
+			plmn_dec = mcc * 1000 + mnc;
+		}
+		sprintf(ril_data.state.proper_plmn, "%d", plmn_dec);
 	}
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 }
