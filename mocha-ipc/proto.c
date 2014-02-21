@@ -37,10 +37,13 @@
 #define LOG_TAG "RIL-Mocha-PRO"
 #include <utils/Log.h>
 
-/*
- * TODO: Implement handling of all the Proto packets
- *
- */
+#define  PROTO_DEBUG  0
+
+#if PROTO_DEBUG
+#  define  D(...)   ALOGD(__VA_ARGS__)
+#else
+#  define  D(...)   ((void)0)
+#endif
 
 void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 {
@@ -50,55 +53,56 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 	switch (rx_header->type)
 	{
 		case PROTO_PACKET_STARTING_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_STARTING_NETWORK_IND packet received");
+			D("PROTO_PACKET_STARTING_NETWORK_IND packet received");
 			ipc_invoke_ril_cb(PROTO_STARTING_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));	
 			break;
 		case PROTO_PACKET_START_NETWORK_CNF:
-			DEBUG_I("PROTO_PACKET_START_NETWORK_CNF packet received");
+			D("PROTO_PACKET_START_NETWORK_CNF packet received");
 			ipc_invoke_ril_cb(PROTO_START_NETWORK_CNF, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));	
 			break;
 		case PROTO_PACKET_START_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_START_NETWORK_IND packet received");
+			D("PROTO_PACKET_START_NETWORK_IND packet received");
 			break;
 		case PROTO_PACKET_STOP_NETWORK_CNF:
-			DEBUG_I("PROTO_PACKET_STOP_NETWORK_CNF packet received");
+			D("PROTO_PACKET_STOP_NETWORK_CNF packet received");
 			ipc_invoke_ril_cb(PROTO_STOP_NETWORK_CNF, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_STOP_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_STOP_NETWORK_IND packet received");
+			D("PROTO_PACKET_STOP_NETWORK_IND packet received");
 			ipc_invoke_ril_cb(PROTO_STOP_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));	
 			break;
 		case PROTO_PACKET_SUSPEND_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_SUSPEND_NETWORK_IND packet received");
+			D("PROTO_PACKET_SUSPEND_NETWORK_IND packet received");
 			ipc_invoke_ril_cb(PROTO_SUSPEND_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_RESUME_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_RESUME_NETWORK_IND packet received");
+			D("PROTO_PACKET_RESUME_NETWORK_IND packet received");
 			ipc_invoke_ril_cb(PROTO_RESUME_NETWORK_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			break;
 		case PROTO_PACKET_UPDATE_NETWORK_STATUS_IND:
-			DEBUG_I("PROTO_PACKET_UPDATE_NETWORK_STATUS_IND packet received");
+			D("PROTO_PACKET_UPDATE_NETWORK_STATUS_IND packet received");
 			break;
 		case PROTO_PACKET_RECEIVE_DATA_IND:
-			DEBUG_I("PROTO_PACKET_RECEIVE_DATA_IND packet received");
+			D("PROTO_PACKET_RECEIVE_DATA_IND packet received");
 			ipc_invoke_ril_cb(PROTO_RECEIVE_DATA_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
 			return;
 			break;
 		case PROTO_PACKET_DS_NETWORK_IND:
-			DEBUG_I("PROTO_PACKET_DS_NETWORK_IND packet received");
+			D("PROTO_PACKET_DS_NETWORK_IND packet received");
 			proto_ds_network_resp(ipc_frame->data + sizeof(struct protoPacketHeader));
 			break;
 		case PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND:
-			DEBUG_I("PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND packet received");
+			D("PROTO_PACKET_RECEIVE_MODEM_SERVICE_IND packet received");
 			break;
 		case PROTO_PACKET_MODEM_RRC_CONNECTION_IND:
-			DEBUG_I("PROTO_PACKET_MODEM_RRC_CONNECTION_IND packet received");
+			D("PROTO_PACKET_MODEM_RRC_CONNECTION_IND packet received");
 			break;
 		default :
 			DEBUG_I("Proto Packet type = 0x%x is not yet handled, len = 0x%x", rx_header->type, ipc_frame->datasize - sizeof(struct protoPacketHeader));
+			hex_dump(ipc_frame->data + sizeof(struct protoPacketHeader), ipc_frame->datasize - sizeof(struct protoPacketHeader));
 			break;
 		}
-	hex_dump(ipc_frame->data + sizeof(struct protoPacketHeader), ipc_frame->datasize - sizeof(struct protoPacketHeader));
+
 }
 
 void proto_send_packet(struct protoPacket* protoReq)
@@ -158,7 +162,6 @@ void proto_ds_network_resp(uint8_t* buf)
 	pkt.header.type = PROTO_PACKET_DS_NETWORK_RESP;
 	pkt.header.len = 8;
 	pkt.buf = buf;
-	DEBUG_I("proto_ds_network_resp");
 	hex_dump(buf, 8);
 	proto_send_packet(&pkt);
 }

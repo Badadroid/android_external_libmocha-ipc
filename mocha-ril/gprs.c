@@ -296,7 +296,6 @@ void ril_gprs_connection_stop(struct ril_gprs_connection *gprs_connection)
 
 void ipc_proto_starting_network_ind(void* data)
 {
-	ALOGD("%s: Test me!", __func__);
 	struct ril_gprs_connection *gprs_connection;
 	protoStartingNetworkInd* netInd = (protoStartingNetworkInd*)(data);
 
@@ -320,8 +319,6 @@ void ipc_proto_starting_network_ind(void* data)
 
 void ipc_proto_start_network_cnf(void* data)
 {
-	ALOGD("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection;
 	protoStartNetworkCnf* netCnf = (protoStartNetworkCnf*)(data);
 	RIL_Data_Call_Response_v6 *setup_data_call_response;
@@ -415,8 +412,6 @@ void ipc_proto_start_network_cnf(void* data)
 
 void ipc_proto_stop_network_cnf(void* data)
 {
-	ALOGD("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection;
 	protoContext* netCnf = (protoContext*)(data);
 
@@ -474,8 +469,6 @@ void ipc_proto_receive_data_ind(void* data)
 
 void ipc_proto_suspend_network_ind(void* data)
 {
-	ALOGE("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection;
 	protoContext* netCnf = (protoContext*)(data);
 
@@ -493,8 +486,6 @@ void ipc_proto_suspend_network_ind(void* data)
 
 void ipc_proto_resume_network_ind(void* data)
 {
-	ALOGE("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection;
 	protoContext* netCnf = (protoContext*)(data);
 
@@ -512,8 +503,6 @@ void ipc_proto_resume_network_ind(void* data)
 
 void ril_request_setup_data_call(RIL_Token t, void *data, int length)
 {
-	ALOGE("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection = NULL;
 	char *username = NULL;
 	char *password = NULL;
@@ -602,8 +591,6 @@ error:
 
 void ril_request_deactivate_data_call(RIL_Token t, void *data, int length)
 {
-	ALOGE("%s: Test me!", __func__);
-
 	struct ril_gprs_connection *gprs_connection;
 	char *cid;
 	int rc;
@@ -631,7 +618,6 @@ error:
 
 void ril_request_last_data_call_fail_cause(RIL_Token t)
 {
-	ALOGE("%s: Test me!", __func__);
 	struct ril_gprs_connection *gprs_connection;
 	int last_failed_cid;
 	int fail_cause;
@@ -669,7 +655,6 @@ fail_cause_return:
 
 void ril_unsol_data_call_list_changed(RIL_Token t)
 {
-	ALOGE("%s: test me me!", __func__);
 	struct ril_gprs_connection *gprs_connection;
 	struct list_head *list;
 	RIL_Data_Call_Response_v6 *data_call_list = NULL;
@@ -724,7 +709,6 @@ list_continue:
 
 void ril_request_data_call_list(RIL_Token t)
 {
-	ALOGE("%s: test me me!", __func__);
 	ril_unsol_data_call_list_changed(t);
 }
 
