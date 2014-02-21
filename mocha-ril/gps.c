@@ -2,6 +2,7 @@
  * This file is part of mocha-ril.
  *
  * Copyright (C) 2014 Nikolay Volkov <volk204@mail.ru>
+ * Copyright (C) 2014 Dominik Marszk <dmarszk@gmail.com>
  *
  * mocha-ril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,14 +28,14 @@
 #include <hardware/gps.h>
 #include <lbs.h>
 
-static uint8_t MEASUREMENT_PRECISION = 10; // meters
-
 void ipc_lbs_get_position_ind(void* data)
 {
 	lbsGetPositionInd* get_pos = (lbsGetPositionInd*)(data);
 	ALOGD("%s: latitude = %f, longitude = %f", __func__, get_pos->latitude, get_pos->longitude);
 	ALOGD("%s: altitude = %f, speed = %f, timestamp = %d", __func__, get_pos->altitude, get_pos->speed, get_pos->timestamp);
 	ALOGD("%s: lbsPositionDataType = %d, numOfSatInView = %d, numOfSatToFix = %d", __func__, get_pos->lbsPositionDataType, get_pos->numOfSatInView, get_pos->numOfSatToFix);
+	ALOGD("%s: h_accuracy = %f, v_accuracy = %f", __func__, get_pos->h_accuracy, get_pos->v_accuracy);
+	ALOGD("%s: PDOP = %d, HDOP = %d, VDOP = %d", __func__, get_pos->pdop, get_pos->hdop, get_pos->vdop);
 
 	GpsSvStatus status;
 	unsigned int i;
@@ -47,10 +48,13 @@ void ipc_lbs_get_position_ind(void* data)
 	{
 		status.sv_list[i].size = sizeof(GpsSvInfo);
 		status.sv_list[i].prn = get_pos->satInfo[i].prn;
-		status.sv_list[i].snr = get_pos->satInfo[i].snr;
+		status.sv_list[i].snr = get_pos->satInfo[i].snr / 10;
 		status.sv_list[i].elevation = get_pos->satInfo[i].elevation;
 		status.sv_list[i].azimuth = get_pos->satInfo[i].azimuth;
 	}
+
+	for(i = 0; i < get_pos->numOfSatToFix; i++)
+		status.used_in_fix_mask |= (1ul << (get_pos->satIdtoFix[i] - 1));
 
 	srs_send(find_srs_gps_client(), SRS_GPS_SV_STATUS, &status, sizeof(GpsSvStatus));
 
@@ -65,15 +69,20 @@ void ipc_lbs_get_position_ind(void* data)
 		location.timestamp = get_pos->timestamp;
 		// convert gps time to epoch time ms
 		location.timestamp += 315964800; // 1/1/1970 to 1/6/1980
-		location.timestamp -= 15; // 15 leap seconds between 1980 and 2011
 		location.timestamp *= 1000; //ms
 
 		location.flags |= GPS_LOCATION_HAS_LAT_LONG;
 		location.latitude = get_pos->latitude;
 		location.longitude = get_pos->longitude;
 
+		location.flags |= GPS_LOCATION_HAS_ALTITUDE;
+		location.altitude = get_pos->altitude;
+
+		location.flags |= GPS_LOCATION_HAS_SPEED;
+		location.speed = get_pos->speed / 3.6f; // convert kp/h to m/s
+
 		location.flags |= GPS_LOCATION_HAS_ACCURACY;
-		location.accuracy = get_pos->hdop / 10.0f / 2.0f * (float)MEASUREMENT_PRECISION;
+		location.accuracy = get_pos->h_accuracy;
 
 		srs_send(find_srs_gps_client(), SRS_GPS_LOCATION, &location, sizeof(GpsLocation));
 	}

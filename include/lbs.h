@@ -1,7 +1,8 @@
 /**
  * This file is part of libmocha-ipc.
  *
- * Copyright (C) 2012 Dominik Marszk <dmarszk@gmail.com>
+ * Copyright (C) 2012-2014 Dominik Marszk <dmarszk@gmail.com>
+ * Copyright (C) 2014 Nikolay Volkov <volk204@mail.ru>
  *
  * libmocha-ipc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,8 +103,8 @@ typedef struct {
 typedef struct {
 	double latitude;
 	double longitude;
-	float accuracy1;
-	float accuracy2;
+	float h_accuracy;
+	float v_accuracy;
 	double altitude;
 	double trueCourse;
 	double speed;
