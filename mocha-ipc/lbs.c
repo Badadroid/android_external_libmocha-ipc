@@ -67,9 +67,10 @@ void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame)
 			break;
 		default:
 			DEBUG_I("Undefined LBS Packet 0x%x received", rx_header->type);
+			hex_dump(ipc_frame->data, rx_header->size + sizeof(struct lbsPacketHeader));
 			break;
 	}
-	hex_dump(ipc_frame->data, rx_header->size + sizeof(struct lbsPacketHeader));
+
 }
 
 uint8_t lbsSendBuf[0x100C];
