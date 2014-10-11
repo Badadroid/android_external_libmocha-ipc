@@ -42,11 +42,14 @@
 
 void ipc_parse_tm(struct ipc_client* client, struct modem_io *ipc_frame)
 {
-	DEBUG_I("Test_Mode Parser");
-	DEBUG_I("Frame type = 0x%x\n Frame length = 0x%x\n", ipc_frame->cmd, ipc_frame->datasize);
-	ipc_hex_dump(client, ipc_frame->data, ipc_frame->datasize);
 	if (ipc_frame->datasize == 0x8c)
 		tm_bat_info((struct tm_battery_info *)(ipc_frame->data));
+	else
+	{
+		DEBUG_I("Test_Mode Parser");
+		DEBUG_I("Frame type = 0x%x\n Frame length = 0x%x\n", ipc_frame->cmd, ipc_frame->datasize);
+		ipc_hex_dump(client, ipc_frame->data, ipc_frame->datasize);
+	}
 }
 
 void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_size)
@@ -66,7 +69,7 @@ void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_siz
 
 void tm_bat_info(struct tm_battery_info *bat_info)
 {
-	DEBUG_I("Battery info: \n ADC_val = %d\n raw_volt= %d\n raw_soc= %f%%\n adj_soc=%f%%\n max_soc=%f%%\n", bat_info->ADC_val, bat_info->raw_volt, bat_info->raw_soc,bat_info->adj_soc, bat_info->max_soc);
+	DEBUG_I("Battery info: \n ADC_val = %d raw_volt= %d\n raw_soc= %f%% adj_soc=%f%% max_soc=%f%%", bat_info->ADC_val, bat_info->raw_volt, bat_info->raw_soc,bat_info->adj_soc, bat_info->max_soc);
 	char buf[20];
 	int32_t len;
 
