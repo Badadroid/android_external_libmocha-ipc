@@ -163,7 +163,7 @@ void *battery_thread(void *data)
 {
 	struct timeval select_timeout;
 	char buf[200];
-	int32_t fd_usb, fd_ac, status;
+	int32_t fd_usb, fd_ac, fd_full, status, len;
 
 	ipc_batt_thread *batt_thread = (ipc_batt_thread *)data;
 
@@ -175,21 +175,26 @@ void *battery_thread(void *data)
 	sprintf(buf, "%s%s", power_dev_path, "ac/online");
 	fd_ac = open(buf, O_RDONLY);
 	if (fd_ac < 0)
-		DEBUG_E("Couldn't open %s", buf);
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
 
-	sprintf(buf, "%s%s", power_dev_path, "battery/temp");
+	sprintf(buf, "%s%s", power_dev_path, "battery/batt_temp_adc");
 	fd_temp = open(buf, O_RDWR);
 	if (fd_temp < 0)
 		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
 
-	sprintf(buf, "%s%s", power_dev_path, "battery/voltage_now");
+	sprintf(buf, "%s%s", power_dev_path, "battery/batt_volt");
 	fd_volt = open(buf, O_RDWR);
 	if (fd_volt < 0)
 		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
 
-	sprintf(buf, "%s%s", power_dev_path, "battery/capacity");
+	sprintf(buf, "%s%s", power_dev_path, "battery/batt_soc");
 	fd_cap = open(buf, O_RDWR);
 	if (fd_cap < 0)
+		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
+
+	sprintf(buf, "%s%s", power_dev_path, "battery/batt_full_interrupt");
+	fd_full = open(buf, O_RDWR);
+	if (fd_full < 0)
 		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
 
 	ALOGD("%s: Battery thread initialized", __func__);
@@ -234,12 +239,26 @@ void *battery_thread(void *data)
 				status = 2; //remove
 			}
 		}
+		if (status == 0)
+		{
+			pread(fd_full, buf, 1, 0);
+			if (buf[0] == '1')
+			{
+				DEBUG_I("%s: battery full interrupt registered", __func__);
+				status = 0xB;
+				sprintf(buf, "%d", 0);
+				len = strlen(buf);
+				if(write(fd_full, buf, strlen(buf)) != len)
+					DEBUG_E("%s: Failed to write batt_full_interrupt, error: %s", __func__, strerror(errno));
+			}
+		}
 		if (status != 0)
 		{
 			drv_send_packet(TA_CHANGE_AP, (uint8_t*)&status, 4);
 			status = 0;
 		}
 		tm_send_packet(0x1,0xA, 0, 0);
+
 	}
 }
 
@@ -302,7 +321,6 @@ void handleFuelGaugeStatus(uint8_t percentage)
 {
 	char buf[10];
 	int32_t fd, len;
-	int32_t status = 0xB;
 
 	DEBUG_I("%s: Percentage: %d%%", __func__, percentage);
 
@@ -310,12 +328,6 @@ void handleFuelGaugeStatus(uint8_t percentage)
 	len = strlen(buf);
 	if(write(fd_cap, buf, strlen(buf)) != len)
 		DEBUG_E("%s: Failed to write battery capacity, error: %s", __func__, strerror(errno));
-
-	if (percentage == 100 && battery_state == BATTERY_CHARGING)
-	{
-		battery_state = BATTERY_FULL;
-		drv_send_packet(TA_CHANGE_AP, (uint8_t*)&status, 4);
-	}
 }
 
 void ipc_parse_drv(struct ipc_client* client, struct modem_io *ipc_frame)
