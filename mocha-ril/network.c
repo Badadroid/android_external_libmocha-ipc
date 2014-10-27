@@ -208,6 +208,8 @@ void ipc_network_select(void* data)
 			break;
 		case TAPI_SERVICE_LEVEL_FULL:
 			ril_data.state.reg_state = 1; //1 - Registered, home network
+			if (netInfo->bRoaming)
+				ril_data.state.reg_state = 5; // Registered, roaming
 			break;
 		case TAPI_SERVICE_LEVEL_SEARCHING:
 			ril_data.state.reg_state = 2;//2 - Not registered, but MT is currently searching a new operator to register
