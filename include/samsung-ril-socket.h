@@ -90,7 +90,7 @@ typedef enum {
 typedef enum {
 	SND_INPUT_MAIN_MIC = 	0x100,
 	SND_INPUT_EAR_MIC = 	0x200, 
-	SND_INPUT_BT_MIC = 	0x800 /* TODO: confirm */
+	SND_INPUT_BT_MIC = 	0x800,
 } SndInput;
 
 struct srs_snd_set_volume_packet {
@@ -114,6 +114,5 @@ struct srs_snd_enable_disable_packet {
 struct srs_control_ping {
 	int caffe;
 } __attribute__((__packed__));
-
 
 #endif

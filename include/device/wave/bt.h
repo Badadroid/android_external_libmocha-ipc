@@ -24,7 +24,7 @@
 #define __DEVICE_WAVE_BT_H__
 
 /**
- * All the TAPI Network context structures specific to Wave will be defined here
+ * All the Bluetooth context structures specific to Wave will be defined here
  */
 
 enum BT_PACKET_TYPE
@@ -42,6 +42,5 @@ enum BT_PACKET_TYPE
 	BT_PACKET_SAP_SIM_CARD_STATUS 		= 0x26,
 	BT_PACKET_BT_ADDR_INFO 			= 0x29,
 };
-
 
 #endif

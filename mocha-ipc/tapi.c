@@ -44,27 +44,6 @@
 #define LOG_TAG "RIL-Mocha-TAPI-PACKET"
 #include <utils/Log.h>
 
-/*
- * TODO: Implement handling of all the TAPI packets
- *
- */
-
- /*
-	Most/all packets seems to be replied with tapi packet:
-	service=0, serviceFunc=0, buflen=8, 
-	buf={u16(0), u16(<uninitialized>), u32<return value of called tapi function, usually 1?>}
- */
- 
-void tapi_init(void)
-{	
-	DEBUG_I("enter tapi_init");
-	/* TODO: prepare some contexts for Network, SS, NetText, AT here or in these functions? */
-	tapi_network_init();
-	tapi_nettext_set_mem_available(1);
-	tapi_at_init();
-	DEBUG_I("exit tapi_init");
-}
-
 void ipc_parse_tapi(struct ipc_client* client, struct modem_io *ipc_frame)
 {
 	struct tapiPacketHeader *rx_header;
@@ -143,4 +122,14 @@ void tapi_send_packet(struct tapiPacket* tapiReq)
 	ipc_send(&request);
 
 	free(fifobuf);
+}
+
+void tapi_init(void)
+{
+	DEBUG_I("enter tapi_init");
+	/* TODO: prepare some contexts for Network, SS, NetText, AT here or in these functions? */
+	tapi_network_init();
+	tapi_nettext_set_mem_available(1);
+	tapi_at_init();
+	DEBUG_I("exit tapi_init");
 }

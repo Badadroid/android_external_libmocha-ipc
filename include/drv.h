@@ -54,24 +54,32 @@ struct drvRequest {
 } __attribute__((__packed__));
 
 typedef enum {
-       CABLE_REMOVED                           = 0,
-       CABLE_INSERTED                          = 1,
+	CABLE_REMOVED                           = 0,
+	CABLE_INSERTED                          = 1,
 } ril_cable_state;
 
 typedef enum {
-       BATTERY_CHARGING_DISABLED               = 0,
-       BATTERY_CHARGING                        = 1,
-       BATTERY_FULL                            = 2,
+	BATTERY_CHARGING_DISABLED               = 0,
+	BATTERY_CHARGING                        = 1,
 } ril_battery_state;
 
 typedef struct ipc_batt_thread {
-       pthread_t thread;
-       pthread_mutex_t mutex;
-       int thread_state;
+	pthread_t thread;
+	pthread_mutex_t mutex;
+	int thread_state;
 } ipc_batt_thread;
 
 void ipc_parse_drv(struct ipc_client* client, struct modem_io *ipc_frame);
 void drv_send_packet(uint8_t type, uint8_t *data, int32_t data_size);
 int32_t get_nvm_data(void *data, uint32_t size);
+void handleReadNvRequest(struct drvNvPacket* rxNvPacket);
+#if defined(DEVICE_JET)
+void handleJetPmicRequest(struct modem_io *ipc_frame);
+#endif
+void handleSystemInfoRequest(void);
+void *battery_thread(void *data);
+void battery_thread_start(void);
+void send_ta_info(void);
+void handleFuelGaugeStatus(uint8_t percentage);
 
 #endif

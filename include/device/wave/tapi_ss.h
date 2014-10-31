@@ -78,6 +78,4 @@ enum TAPI_SS_TYPE
 	TAPI_SS_CNAP_IND 			= 0x8B,
 };
 
-
-
 #endif

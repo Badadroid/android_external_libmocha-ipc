@@ -33,10 +33,6 @@
  * All the TAPI Nettext (sms) context structures generic to all Mocha devices will be defined here
  */
 
-struct tapiNetText {
-	uint32_t handle;
-};
-
 typedef struct {
 	uint32_t ext_cb;
 	uint32_t ext_cb_enable;
@@ -104,13 +100,10 @@ typedef struct {
 
 
 void tapi_nettext_parser(uint16_t tapiNettextType, uint32_t tapiNettextLength, uint8_t *tapiNettextData);
-
+void tapi_nettext_send(uint8_t* tapiNettextOutgoingMessage);
 void tapi_nettext_set_mem_available(uint32_t bMemAvail);
 void tapi_nettext_set_preferred_memory(uint8_t preferredMemory);
 void tapi_nettext_set_net_burst(uint32_t bNetBurstEnabled);
 void tapi_nettext_set_cb_settings(tapi_nettext_cb_settings* cb_sett_buf);
-void tapi_nettext_incoming(uint32_t tapiNettextLength, uint8_t *tapiNettextData);
-void tapi_nettext_send(uint8_t* tapiNettextOutgoingMessage);
-void tapi_nettext_send_callback(uint8_t *callBack);
 
 #endif

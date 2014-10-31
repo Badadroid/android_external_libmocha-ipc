@@ -30,8 +30,6 @@
 
 void ipc_ss_ussd_response(void* data)
 {
-	ALOGE("%s: test me!", __func__);
-
 	char *message[2];
 	unsigned int i,data_dec_len = 0;; 
 	int result = 0;
@@ -75,7 +73,6 @@ void ipc_ss_ussd_response(void* data)
 			DEBUG_I("%s: message -  %s ", __func__, (char*)ssResp->ussdStr);
 			message[1][data_dec_len] = '\0';
 			break;
-
 		default:
 
 			ALOGD("USSD Rx encoding %x is unknown, assuming ASCII",ssResp->dcs);
@@ -83,9 +80,7 @@ void ipc_ss_ussd_response(void* data)
 			asprintf(&message[1], "%s", (char*)ssResp->ussdStr);
 			DEBUG_I("%s: message -  %s ", __func__, (char*)ssResp->ussdStr);
 			message[1][data_dec_len] = '\0';
-
 			break;
-
 	}
 
 	ril_request_unsolicited(RIL_UNSOL_ON_USSD, message, sizeof(message));
@@ -98,7 +93,6 @@ void ipc_ss_ussd_response(void* data)
 
 void ipc_ss_error_response(void* data)
 {
-	ALOGE("%s: test me!", __func__);
 	char *message[2];
 	unsigned int i,data_dec_len = 0;; 
 	char *data_dec = NULL;
@@ -116,12 +110,10 @@ void ipc_ss_error_response(void* data)
 		if (message[i] != NULL)
 			free(message[i]);
 	}
-
 }
 
 void ril_request_send_ussd(RIL_Token t, void *data, size_t datalen)
 {
-	ALOGE("%s: test me!", __func__);
 	tapiSsSendUssd *ussd_req;
 	tapiSsResponse *ss_resp;
 
@@ -188,7 +180,6 @@ void ril_request_send_ussd(RIL_Token t, void *data, size_t datalen)
 
 void ril_request_cancel_ussd(RIL_Token t, void *data, size_t datalen)
 {
-	ALOGE("%s: test me!", __func__);
 	ril_data.state.ussd_state = USSD_TERMINATED_BY_NET;
 	tapiSsResponse *ss_resp;
 
@@ -205,5 +196,3 @@ void ril_request_cancel_ussd(RIL_Token t, void *data, size_t datalen)
 	if (ss_resp != NULL)
 		free(ss_resp); 
 }
-
-

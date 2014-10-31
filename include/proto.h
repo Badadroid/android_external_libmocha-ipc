@@ -162,7 +162,6 @@ typedef struct {
 } __attribute__((__packed__)) protoTransferDataBuf;
 
 void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame);
-
 void proto_send_packet(struct protoPacket* protoReq);
 void proto_startup(void);
 void proto_start_network(protoStartNetwork* startNetwork);

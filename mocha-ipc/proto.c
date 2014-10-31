@@ -85,7 +85,6 @@ void ipc_parse_proto(struct ipc_client* client, struct modem_io *ipc_frame)
 		case PROTO_PACKET_RECEIVE_DATA_IND:
 			D("PROTO_PACKET_RECEIVE_DATA_IND packet received");
 			ipc_invoke_ril_cb(PROTO_RECEIVE_DATA_IND, (void*)(ipc_frame->data + sizeof(struct protoPacketHeader)));
-			return;
 			break;
 		case PROTO_PACKET_DS_NETWORK_IND:
 			D("PROTO_PACKET_DS_NETWORK_IND packet received");

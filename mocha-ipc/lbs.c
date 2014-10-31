@@ -37,12 +37,6 @@
 #define LOG_TAG "RIL-Mocha-LBS"
 #include <utils/Log.h>
 
-
-void lbs_init(void)
-{
-	lbs_send_init(1);
-}
-
 void ipc_parse_lbs(struct ipc_client* client, struct modem_io *ipc_frame)
 {
 	struct lbsPacketHeader *rx_header;

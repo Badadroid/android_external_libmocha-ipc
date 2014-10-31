@@ -84,6 +84,7 @@ void bcd2ascii(char* out, const uint8_t* in, int size)
 	}
 	out[outi] = 0x00; //terminate string with null
 }
+
 void ipc_hex_dump(struct ipc_client *client, void *data, int size)
 {
     /* dumps size bytes of *data to stdout. Looks like:
@@ -226,4 +227,3 @@ error:
     ipc_client_log(client, "%s: something went wrong\n", __func__);
     return NULL;
 }
-

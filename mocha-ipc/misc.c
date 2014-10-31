@@ -103,7 +103,6 @@ void ipc_parse_boot(struct ipc_client *client, struct modem_io *ipc_frame)
 	int retval, count;
 	
     DEBUG_I("Inside ipc_parse_boot leaving\n");
-
 }
 
 void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame)
@@ -118,7 +117,6 @@ void ipc_parse_dbg_level(struct ipc_client *client, struct modem_io *ipc_frame)
 	syssec_send_imei();
 	ipc_send_lazy_fw_ver();
 	DEBUG_I("Inside ipc_parse_dbg_level leaving\n");
-
 }
 
 void ipc_parse_system(struct ipc_client *client, struct modem_io *ipc_frame)
@@ -131,4 +129,3 @@ void ipc_parse_dbg(struct ipc_client *client, struct modem_io *ipc_frame)
 {
 	ipc_client_log(client, "AMSS debugstring - %s\n", (char *)(ipc_frame->data));
 }
-

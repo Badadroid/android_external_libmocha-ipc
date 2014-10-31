@@ -34,18 +34,14 @@ const uint8_t fake_imei[] = {0x08, 0x1A, 0x32, 0x54, 0x76, 0x98, 0x12, 0x34, 0x5
 
 void ipc_parse_syssec(struct ipc_client* client, struct modem_io *ipc_frame)
 {
-	DEBUG_I("Entering");
-
 	struct sysSecPacketHeader *rx_header;
-
     rx_header = (struct sysSecPacketHeader*)(ipc_frame->data);
 
 	DEBUG_I("Syssec packet type = 0x%x\n  Syssec packet unk1 = 0x%X\n  packet length = 0x%X, unk2= 0x%X", rx_header->type, rx_header->unknown1, rx_header->bufLen, rx_header->unknown2);
 	ipc_hex_dump(client, ipc_frame->data, rx_header->bufLen);
-	DEBUG_I("Exiting");
 }
 
-void load_sec_data()
+void load_sec_data(void)
 {
 	uint8_t data[150];
 	uint8_t real_imei[9]; 	

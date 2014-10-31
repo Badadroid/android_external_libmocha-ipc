@@ -61,4 +61,3 @@ void tapi_at_init(void)
 	
 	tapi_send_packet(&pkt);
 }
-

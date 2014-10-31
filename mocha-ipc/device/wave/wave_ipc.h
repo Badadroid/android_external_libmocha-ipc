@@ -35,6 +35,4 @@ struct multiPacketHeader {
 	uint32_t packetType;
 };
 
-
 #endif
-

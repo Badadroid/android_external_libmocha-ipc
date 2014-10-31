@@ -61,13 +61,6 @@ void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 			break;
 		case FIFO_PKT_FILE:
 			ipc_parse_fm(client, ipc_frame);
-				/*
-			if (ret)
-			{
-				modem_send_tapi_init(ipc_frame);
-				sim_atk_open(0);
-				sim_open_to_modem(0);
-			}*/
 			break;
 		case FIFO_PKT_SOUND:
 			ipc_parse_sound(client, ipc_frame);
@@ -86,7 +79,7 @@ void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 			break;
 		case FIFO_PKT_DEBUG:
 			ipc_parse_dbg(client, ipc_frame);
-		        break;
+			break;
 		case FIFO_PKT_BLUETOOTH:
 			ipc_parse_bt(client, ipc_frame);
 			break;

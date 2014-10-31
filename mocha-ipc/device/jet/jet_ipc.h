@@ -37,13 +37,10 @@
 #define IOCTL_WAKEUP			0x68d7
 #define IOCTL_SILENT_RESET		0x68d8
 
-
 struct multiPacketHeader {
 	uint32_t command;
 	uint32_t packtLen;
 	uint32_t packetType;
 };
 
-
 #endif
-

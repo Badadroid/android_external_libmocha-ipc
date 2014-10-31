@@ -228,9 +228,9 @@ int main(int argc, char *argv[])
         goto modem_quit;
     }
 
-    if (debug == 0)
+/*    if (debug == 0)
         ipc_client_set_log_handler(client, modem_log_handler_quiet, NULL);
-    else ipc_client_set_log_handler(client, modem_log_handler, NULL);
+    else ipc_client_set_log_handler(client, modem_log_handler, NULL); */
 
     while(opt_i < argc) {
         if(strncmp(argv[optind], "power-on", 8) == 0) {

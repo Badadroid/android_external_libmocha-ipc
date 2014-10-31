@@ -57,25 +57,17 @@ void bt_addr_info(uint8_t *data)
 	char bdaddr[18];
 	int fd;
 	int i = 5;
-	
-	
+
 	memset(bdaddr, 0, sizeof(bdaddr));
- 	sprintf(bdaddr, "%02X:%02X:%02X:%02X:%02X:%02X", data[5], data[4], data[3], data[2], data[1], data[0]); 
+	sprintf(bdaddr, "%02x:%02x:%02x:%02x:%02x:%02x", data[5], data[4], data[3], data[2], data[1], data[0]);
 	DEBUG_I("%s : BT MAC adress = %s", __func__, bdaddr);	
 
-	fd = open(RIL_BDADDR_PATH, O_WRONLY|O_CREAT|O_TRUNC, 0660|0660|0660);
+	fd = open(RIL_BDADDR_PATH, O_WRONLY|O_CREAT|O_TRUNC, 00600|00060|00006);
 	if (fd < 0) {
 		fprintf(stderr, "open(%s) failed\n", RIL_BDADDR_PATH);
 		ALOGE("Can't open %s\n", RIL_BDADDR_PATH);
 		return;
 	}
 	write(fd, bdaddr, 18);
-
 	close(fd);
 }
-
-
-
-
-
-

@@ -43,7 +43,7 @@ int ril_net_select_register(char *plmn, tapiNetSearchCnf net_select_entry)
 	net_select->plmn = plmn;
 	net_select->net_select_entry = net_select_entry;
 
-	ALOGE("%s: added plmn %s", __func__, net_select->plmn);
+	ALOGD("%s: added plmn %s", __func__, net_select->plmn);
 
 	list_end = ril_data.net_select_list;
 	while (list_end != NULL && list_end->next != NULL)
@@ -156,6 +156,8 @@ void ipc_network_radio_info(void* data)
 	if(ril_data.state.power_state < POWER_STATE_NORMAL)
 		return;
 
+	ALOGD("%s: rxLevel=%d, rxQual=%d", __func__, radioInfo->rxLevel, radioInfo->rxQual);
+
 	rssi = (uint32_t)radioInfo->rxLevel;
 
 	switch (rssi) {
@@ -198,6 +200,8 @@ void ipc_network_select(void* data)
 {	
 	tapiNetworkInfo* netInfo = (tapiNetworkInfo*)(data);
 	
+	ALOGD("%s: serviceLevel=%d, serviceType=%d, psServiceType=%d, systemId.systemType=%d, sysIdFormat = %d, networkMode = 0x%X, systemId =%d, bForbidden = %d, bHome = %d, bEquivalent=%d, bRoaming=%d, name=%s, spn=%s, registrationFail.state=%d, registrationFail.cause=%d, bDisplayPplmn=%d, bDisplaySpn=%d", __func__, netInfo->serviceLevel, netInfo->serviceType, netInfo->psServiceType, netInfo->systemType, netInfo->sysIdFormat, netInfo->networkMode, netInfo->systemId, netInfo->bForbidden, netInfo->bHome, netInfo->bEquivalent, netInfo->bRoaming, netInfo->name, netInfo->spn, netInfo->registrationFail.state, netInfo->registrationFail.cause, netInfo->bDisplayPplmn, netInfo->bDisplaySpn);
+
 	/* Converts IPC network registration status to Android RIL format */
 	switch(netInfo->serviceLevel) {
 		case TAPI_SERVICE_LEVEL_NONE:
@@ -261,6 +265,9 @@ void ipc_network_select(void* data)
 void ipc_cell_info(void* data)
 {
 	tapiCellInfo* cellInfo = (tapiCellInfo*)(data);
+
+	ALOGD("%s: cbchStatus:%d, bCellChanged:%d, bRACChanged:%d, bLACChanged:%d, bPLMNChanged:%d", __func__, cellInfo->cbchStatus, cellInfo->bCellChanged, cellInfo->bRACChanged, cellInfo->bLACChanged, cellInfo->bPLMNChanged);
+	ALOGD("%s: cellId:%x %x %x %x, racId:%x, ladId:%x %x, plmnId:%x %x %x\n", __func__, cellInfo->cellId[0], cellInfo->cellId[1], cellInfo->cellId[2], cellInfo->cellId[3], cellInfo->racId, cellInfo->lacId[0], cellInfo->lacId[1], cellInfo->plmnId[0], cellInfo->plmnId[1], cellInfo->plmnId[2]);
 
 	if(cellInfo->bCellChanged)
 	{
@@ -432,6 +439,7 @@ void network_start(void)
 	start_info.bFlightMode = 0;	
 	start_info.unknown = 0x02;
 	start_info.align2 = 0;
+	ALOGD("tapi_network_startup - AutoSelection:%d,bPoweronGprsAttach:%d,networkMode=0x%X,networkOrder:%d,serviceDomain:%d,subscriptionMode:%d,bFlightMode=%d", start_info.bAutoSelection, start_info.bPoweronGprsAttach, start_info.networkMode, start_info.networkOrder, start_info.serviceDomain, start_info.subscriptionMode, start_info.bFlightMode);
 	/* TODO: Check if it can be executed from tapi_init, or do we need to wait for network select or some other packet. */
 	tapi_network_startup(&start_info);
 	

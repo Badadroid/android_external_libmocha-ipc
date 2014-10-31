@@ -39,7 +39,6 @@
 #define LOG_TAG "RIL-Mocha-TM"
 #include <utils/Log.h>
 
-
 void ipc_parse_tm(struct ipc_client* client, struct modem_io *ipc_frame)
 {
 	if (ipc_frame->datasize == 0x8c)
@@ -84,9 +83,4 @@ void tm_bat_info(struct tm_battery_info *bat_info)
 		DEBUG_E("%s: Failed to write battery raw_volt, error: %s", __func__, strerror(errno));
 
 	handleFuelGaugeStatus(bat_info->bat_gauge);
-
-}
-
-void ipc_send_rcv_tm()
-{
 }

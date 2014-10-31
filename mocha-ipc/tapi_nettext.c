@@ -47,10 +47,10 @@ void tapi_nettext_parser(uint16_t tapiNettextType, uint32_t tapiNettextLength, u
     switch(tapiNettextType)
     {
 	case TAPI_NETTEXT_INCOMING:
-		tapi_nettext_incoming(tapiNettextLength, tapiNettextData);
+		ipc_invoke_ril_cb(NETTEXT_INCOMING, (void*)tapiNettextData);
 		break;	
 	case TAPI_NETTEXT_SEND_CALLBACK:
-		tapi_nettext_send_callback(tapiNettextData);
+		ipc_invoke_ril_cb(NETTEXT_SEND_CALLBACK, (void*)tapiNettextData);
 		break;	
     	default:
 		DEBUG_I("TapiNettext packet type 0x%X is not yet handled, len = 0x%x", tapiNettextType, tapiNettextLength);
@@ -59,65 +59,52 @@ void tapi_nettext_parser(uint16_t tapiNettextType, uint32_t tapiNettextLength, u
     hex_dump(tapiNettextData, tapiNettextLength);
 }
 
+void tapi_nettext_send(uint8_t* tapiNettextOutgoingMessage)
+{
+	struct tapiPacket pkt;
+	pkt.header.len = 0x138;
+	pkt.header.tapiService = TAPI_TYPE_NETTEXT;
+	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SEND;
+	pkt.buf = tapiNettextOutgoingMessage;
+	tapi_send_packet(&pkt);
+}
+
 void tapi_nettext_set_mem_available(uint32_t bMemAvail)
 {
 	struct tapiPacket pkt;
 	pkt.header.len = 4;
-	pkt.header.tapiService = TAPI_TYPE_NETTEXT;	
+	pkt.header.tapiService = TAPI_TYPE_NETTEXT;
 	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SET_MEM_AVAIL;
-	pkt.buf = (uint8_t*)&bMemAvail;	
+	pkt.buf = (uint8_t*)&bMemAvail;
 	tapi_send_packet(&pkt);
 }
 
 void tapi_nettext_set_preferred_memory(uint8_t preferredMemory)
-{	
+{
 	struct tapiPacket pkt;
 	pkt.header.len = 1;
-	pkt.header.tapiService = TAPI_TYPE_NETTEXT;	
+	pkt.header.tapiService = TAPI_TYPE_NETTEXT;
 	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SET_PREFERRED_MEM;
-	pkt.buf = &preferredMemory;	
+	pkt.buf = &preferredMemory;
 	tapi_send_packet(&pkt);
 }
 
 void tapi_nettext_set_net_burst(uint32_t bNetBurstEnabled)
-{	
+{
 	struct tapiPacket pkt;
 	pkt.header.len = 4;
-	pkt.header.tapiService = TAPI_TYPE_NETTEXT;	
+	pkt.header.tapiService = TAPI_TYPE_NETTEXT;
 	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SET_BURST;
-	pkt.buf = (uint8_t*)&bNetBurstEnabled;	
+	pkt.buf = (uint8_t*)&bNetBurstEnabled;
 	tapi_send_packet(&pkt);
 }
 
 void tapi_nettext_set_cb_settings(tapi_nettext_cb_settings* cb_sett_buf)
-{	
+{
 	struct tapiPacket pkt;
 	pkt.header.len = 0x64;
-	pkt.header.tapiService = TAPI_TYPE_NETTEXT;	
+	pkt.header.tapiService = TAPI_TYPE_NETTEXT;
 	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SET_CB_SETTING;
-	pkt.buf = (uint8_t*)cb_sett_buf;	
+	pkt.buf = (uint8_t*)cb_sett_buf;
 	tapi_send_packet(&pkt);
 }
-
-void tapi_nettext_incoming(uint32_t tapiNettextLength, uint8_t *tapiNettextData)
-{
-	tapiNettextInfo* nettextInfo = (tapiNettextInfo*)(tapiNettextData);
-	
-	ipc_invoke_ril_cb(NETTEXT_INCOMING, (void*)nettextInfo);
-}
-
-void tapi_nettext_send(uint8_t* tapiNettextOutgoingMessage)
-{	
-	struct tapiPacket pkt;
-	pkt.header.len = 0x138;
-	pkt.header.tapiService = TAPI_TYPE_NETTEXT;	
-	pkt.header.tapiServiceFunction = TAPI_NETTEXT_SEND;
-	pkt.buf = tapiNettextOutgoingMessage;	
-	tapi_send_packet(&pkt);
-}
-
-void tapi_nettext_send_callback(uint8_t *callBack)
-{
-	ipc_invoke_ril_cb(NETTEXT_SEND_CALLBACK, (void*)callBack);
-}
-

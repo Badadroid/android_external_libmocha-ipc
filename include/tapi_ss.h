@@ -33,9 +33,6 @@
  * All the TAPI SS context structures generic to all Mocha devices will be defined here
  */
 
-struct tapiSS {
-};
-
 typedef struct {
 	uint32_t bUnknown;
 	uint8_t dcs;
@@ -67,7 +64,5 @@ typedef struct {
 void tapi_ss_parser(uint16_t tapiSsType, uint32_t tapiSsLength, uint8_t *tapiSsData);
 void tapi_ss_send_ussd_string_request(tapiSsSendUssd* ussd_req);
 void tapi_ss_ussd_resp(tapiSsResponse* ussd_req);
-void tapi_ss_ussd_callback(uint8_t *response);
-void tapi_ss_error(uint8_t *response);
 
 #endif

@@ -48,5 +48,5 @@ struct tm_battery_info {
 void ipc_parse_tm(struct ipc_client* client, struct modem_io *ipc_frame);
 void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_size);
 void tm_bat_info(struct tm_battery_info *bat_info);
-void ipc_send_rcv_tm();
+
 #endif

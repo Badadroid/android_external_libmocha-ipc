@@ -49,22 +49,25 @@ void tapi_network_parser(uint16_t tapiNetType, uint32_t tapiNetLength, uint8_t *
 	switch(tapiNetType)
 	{
 		case TAPI_NETWORK_SET_SUBSCRIPTION_MODE:
-			tapi_network_set_subscription_mode(tapiNetLength, tapiNetData);
+			DEBUG_I("tapi_network_set_subscription_mode mode:%d\n", (uint8_t)tapiNetData[0]);
+			//TODO: bounce-back packet to CP, with the same type, subtype and mode
+			ipc_invoke_ril_cb(NETWORK_SET_SUBSCRIPTION_MODE, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_SELECT_IND:
-			tapi_network_network_select_ind(tapiNetLength, tapiNetData);
+			ipc_invoke_ril_cb(NETWORK_SELECT, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_RADIO_INFO:
-			tapi_network_radio_info(tapiNetLength, tapiNetData);
+			ipc_invoke_ril_cb(NETWORK_RADIO_INFO, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_COMMON_ERROR:
-			tapi_network_common_error(tapiNetLength, tapiNetData);
+			DEBUG_I("networkOptError: %d", (uint8_t)tapiNetData[0]);
+			ipc_invoke_ril_cb(NETWORK_OPT_ERROR, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_CELL_INFO:
-			tapi_network_cell_info(tapiNetLength, tapiNetData);
+			ipc_invoke_ril_cb(NETWORK_CELL_INFO, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_NITZ_INFO_IND:
-			tapi_network_nitz_info_ind(tapiNetLength, tapiNetData);
+			ipc_invoke_ril_cb(NETWORK_NITZ_INFO_IND, (void*)tapiNetData);
 			break;
 		case TAPI_NETWORK_SEARCH_CNF:
 			ipc_invoke_ril_cb(NETWORK_SEARCH_CNF, (void*)tapiNetData);
@@ -74,10 +77,9 @@ void tapi_network_parser(uint16_t tapiNetType, uint32_t tapiNetLength, uint8_t *
 			break;
 		default:
 			DEBUG_I("TapiNetwork packet type 0x%X is not yet handled, len = 0x%x", tapiNetType, tapiNetLength);
+			hex_dump(tapiNetData, tapiNetLength);
 			break;
 	}
-	DEBUG_I("tapi_network_parser");
-	hex_dump(tapiNetData, tapiNetLength);
 }
 
 void tapi_network_init(void)
@@ -97,7 +99,6 @@ void tapi_network_startup(tapiStartupNetworkInfo* network_startup_info)
 	pkt.header.tapiService = TAPI_TYPE_NETWORK;	
 	pkt.header.tapiServiceFunction = TAPI_NETWORK_STARTUP;	
 	pkt.buf = (uint8_t*)(network_startup_info);
-	DEBUG_I("tapi_network_startup - AutoSelection:%d,bPoweronGprsAttach:%d,networkMode=0x%X,networkOrder:%d,serviceDomain:%d,subscriptionMode:%d,bFlightMode=%d", network_startup_info->bAutoSelection, network_startup_info->bPoweronGprsAttach, network_startup_info->networkMode, network_startup_info->networkOrder, network_startup_info->serviceDomain, network_startup_info->subscriptionMode, network_startup_info->bFlightMode);
 	tapi_send_packet(&pkt);
 }
 
@@ -120,7 +121,6 @@ void tapi_set_offline_mode(uint8_t mode)
 	pkt.buf = &mode;
 	tapi_send_packet(&pkt);
 }
-
 
 void tapi_network_select(tapiNetSearchCnf* net_select)
 {
@@ -183,47 +183,4 @@ void tapi_set_subscription_mode(uint8_t mode)
 	pkt.header.tapiServiceFunction = TAPI_NETWORK_SET_SUBSCRIPTION_MODE;
 	pkt.buf = &mode;
 	tapi_send_packet(&pkt);
-}
-
-void tapi_network_set_subscription_mode(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{
-	uint8_t subscriptionMode = (uint8_t)tapiNetData[0];	
-	DEBUG_I("tapi_network_set_subscription_mode mode:%d\n", subscriptionMode);
-	//TODO: bounce-back packet to CP, with the same type, subtype and mode
-	ipc_invoke_ril_cb(NETWORK_SET_SUBSCRIPTION_MODE, (void*)tapiNetData);
-}
-
-void tapi_network_network_select_ind(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{	
-	tapiNetworkInfo* netInfo = (tapiNetworkInfo*)(tapiNetData);	
-	
-	DEBUG_I("tapi_network_network_select_ind: serviceLevel=%d, serviceType=%d, psServiceType=%d, systemId.systemType=%d, sysIdFormat = %d, networkMode = 0x%X, systemId =%d, bForbidden = %d, bHome = %d, bEquivalent=%d, bRoaming=%d, name=%s, spn=%s, registrationFail.state=%d, registrationFail.cause=%d, bDisplayPplmn=%d, bDisplaySpn=%d", netInfo->serviceLevel, netInfo->serviceType, netInfo->psServiceType, netInfo->systemType, netInfo->sysIdFormat, netInfo->networkMode, netInfo->systemId, netInfo->bForbidden, netInfo->bHome, netInfo->bEquivalent, netInfo->bRoaming, netInfo->name, netInfo->spn, netInfo->registrationFail.state, netInfo->registrationFail.cause, netInfo->bDisplayPplmn, netInfo->bDisplaySpn);
-	ipc_invoke_ril_cb(NETWORK_SELECT, (void*)netInfo);
-}
-
-void tapi_network_radio_info(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{
-	tapiRadioInfo* radioInfo = (tapiRadioInfo*)(tapiNetData);
-	DEBUG_I("tapi_network_radio_info: rxLevel=%d, rxQual=%d", radioInfo->rxLevel, radioInfo->rxQual);
-	ipc_invoke_ril_cb(NETWORK_RADIO_INFO, (void*)radioInfo);
-}
-
-void tapi_network_common_error(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{	
-	uint8_t networkOptError = (uint8_t)tapiNetData[0];
-	DEBUG_I("networkOptError: %d", networkOptError);
-	ipc_invoke_ril_cb(NETWORK_OPT_ERROR, (void*)&networkOptError);
-}
-
-void tapi_network_cell_info(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{	
-	tapiCellInfo* cellInfo = (tapiCellInfo*)(tapiNetData);	
-	DEBUG_I("tapi_network_cell_info: cbchStatus:%d, bCellChanged:%d, bRACChanged:%d, bLACChanged:%d, bPLMNChanged:%d", cellInfo->cbchStatus, cellInfo->bCellChanged, cellInfo->bRACChanged, cellInfo->bLACChanged, cellInfo->bPLMNChanged);
-	DEBUG_I("tapi_network_cell_info: cellId:%x %x %x %x, racId:%x, ladId:%x %x, plmnId:%x %x %x\n", cellInfo->cellId[0], cellInfo->cellId[1], cellInfo->cellId[2], cellInfo->cellId[3], cellInfo->racId, cellInfo->lacId[0], cellInfo->lacId[1], cellInfo->plmnId[0], cellInfo->plmnId[1], cellInfo->plmnId[2]);
-	ipc_invoke_ril_cb(NETWORK_CELL_INFO, (void*)cellInfo);
-}
-
-void tapi_network_nitz_info_ind(uint32_t tapiNetLength, uint8_t *tapiNetData)
-{
-	ipc_invoke_ril_cb(NETWORK_NITZ_INFO_IND, (void*)tapiNetData);
 }

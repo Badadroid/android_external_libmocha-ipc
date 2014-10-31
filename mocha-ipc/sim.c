@@ -217,7 +217,6 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 		default:
 			DEBUG_I("SIM_EVENT_DEFAULT");
 			break;
-
 	}
 	DEBUG_I("%s: sim event = %d, sim event status = %d",__func__,simEvent->eventType,simEvent->eventStatus);
 }

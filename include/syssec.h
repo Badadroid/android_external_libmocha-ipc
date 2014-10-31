@@ -46,5 +46,6 @@ struct sysSecPacket {
 } __attribute__((__packed__));
 
 void ipc_parse_syssec(struct ipc_client* client, struct modem_io *ipc_frame);
+void load_sec_data(void);
 void syssec_send_imei(void);
 #endif

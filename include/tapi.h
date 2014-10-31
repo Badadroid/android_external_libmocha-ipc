@@ -43,10 +43,7 @@ struct tapiPacket {
 } __attribute__((__packed__));
 
 void ipc_parse_tapi(struct ipc_client* client, struct modem_io *ipc_frame);
-
-void tapi_init(void);
-void modem_execute_tapi_init(void);
-
 void tapi_send_packet(struct tapiPacket* tapiReq);
+void tapi_init(void);
 
 #endif

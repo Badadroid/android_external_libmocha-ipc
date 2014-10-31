@@ -44,7 +44,6 @@ void tapi_call_parser(uint16_t tapiCallType, uint32_t tapiCallLength, uint8_t *t
 	uint8_t *payload;
 	uint32_t frame_length;
 
-	DEBUG_I("tapi_call_parser - tapiCallType: %d", tapiCallType);
 	switch(tapiCallType)
 	{
 		case TAPI_CALL_APIREQ:

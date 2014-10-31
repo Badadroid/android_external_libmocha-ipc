@@ -34,5 +34,4 @@ enum TAPI_AT_TYPE
 	TAPI_AT_CALL_SETUP_RSP		= 0xA5,
 };
 
-
 #endif
