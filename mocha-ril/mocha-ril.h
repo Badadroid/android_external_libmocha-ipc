@@ -368,13 +368,13 @@ void ipc_sim_smsc_number(void* data);
 void ipc_sim_io_response(void* data);
 void ril_request_get_sim_status(RIL_Token t);
 void ril_state_update(ril_sim_state sim_state);
-void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen);
-void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen);
-void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen);
-void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen);
-void ril_request_change_sim_pin(RIL_Token t, void *data, size_t datalen);
+void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t size);
+void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t size);
+void ril_request_query_facility_lock(RIL_Token t, void *data, size_t size);
+void ril_request_set_facility_lock(RIL_Token t, void *data, size_t size);
+void ril_request_change_sim_pin(RIL_Token t, void *data, size_t size);
 int ril_request_sim_io_register(RIL_Token t, int command, int fileid,
-	int p1, int p2, int p3, char *data, int length,
+	int p1, int p2, int p3, void *data, size_t size,
 	struct ril_request_sim_io_info **sim_io_p);
 void ril_request_sim_io_unregister(struct ril_request_sim_io_info *sim_io);
 struct ril_request_sim_io_info *ril_request_sim_io_info_find(void);
@@ -382,8 +382,8 @@ struct ril_request_sim_io_info *ril_request_sim_io_info_find_token(RIL_Token t);
 void ril_request_sim_io_info_clear(struct ril_request_sim_io_info *sim_io);
 void ril_request_sim_io_next(void);
 void ril_request_sim_io_complete(RIL_Token t, int command, int fileid,
-	int p1, int p2, int p3, char *data, int length);
-void ril_request_sim_io(RIL_Token t, void *data, int length);
+	int p1, int p2, int p3, void *data, size_t size);
+void ril_request_sim_io(RIL_Token t, void *data, size_t size);
 
 /* SMS */
 void ipc_sms_send_status(void* data);

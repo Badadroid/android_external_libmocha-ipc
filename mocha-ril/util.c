@@ -462,3 +462,108 @@ error:
 	close(fd);
 	return -1;
 }
+
+size_t data2string_length(const void *data, size_t size)
+{
+	size_t length;
+
+	if (data == NULL || size == 0)
+		return 0;
+
+	length = size * 2 + 1;
+
+	return length;
+}
+
+char *data2string(const void *data, size_t size)
+{
+	char *string;
+	size_t length;
+	char *p;
+	size_t i;
+
+	if (data == NULL || size == 0)
+		return NULL;
+
+	length = data2string_length(data, size);
+	if (length == 0)
+		return NULL;
+
+	string = (char *) calloc(1, length);
+
+	p = string;
+
+	for (i = 0; i < size; i++) {
+		sprintf(p, "%02x", *((unsigned char *) data + i));
+		p += 2 * sizeof(char);
+	}
+
+	return string;
+}
+
+size_t string2data_size(const char *string)
+{
+	size_t length;
+	size_t size;
+
+	if (string == NULL)
+		return 0;
+
+	length = strlen(string);
+	if (length == 0)
+		return 0;
+
+	if (length % 2 == 0)
+		size = length / 2;
+	else
+		size = (length - (length % 2)) / 2 + 1;
+
+	return size;
+}
+
+void *string2data(const char *string)
+{
+	void *data;
+	size_t size;
+	size_t length;
+	int shift;
+	unsigned char *p;
+	unsigned int b;
+	size_t i;
+	int rc;
+
+	if (string == NULL)
+		return NULL;
+
+	length = strlen(string);
+	if (length == 0)
+		return NULL;
+
+	if (length % 2 == 0)
+		shift = 0;
+	else
+		shift = 1;
+
+	size = string2data_size(string);
+	if (size == 0)
+		return NULL;
+
+	data = calloc(1, size);
+
+	p = (unsigned char *) data;
+
+	for (i = 0; i < length; i++) {
+		rc = sscanf(&string[i], "%01x", &b);
+		if (rc < 1)
+			b = 0;
+
+		if ((shift % 2) == 0)
+			*p |= ((b & 0x0f) << 4);
+		else
+			*p++ |= b & 0x0f;
+
+		shift++;
+	}
+
+	return data;
+}

@@ -50,4 +50,9 @@ void load_default_ril_config(void);
 int load_ril_config(void);
 int save_ril_config(void);
 
+size_t data2string_length(const void *data, size_t size);
+char *data2string(const void *data, size_t size);
+size_t string2data_size(const char *string);
+void *string2data(const char *string);
+
 #endif

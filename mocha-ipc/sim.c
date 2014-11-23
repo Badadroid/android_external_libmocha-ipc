@@ -143,41 +143,41 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 	switch(simEvent->eventType)
 	{
 		case SIM_EVENT_BEGIN:
-			DEBUG_I("SIM_EVENT_BEGIN");
+			DEBUG_I("SIM_EVENT_BEGIN, status = %d",simEvent->eventStatus);
 			break;
 		case SIM_EVENT_SIM_OPEN:
 		case SIM_EVENT_GET_SIM_OPEN_DATA:
-			DEBUG_I("SIM_EVENT_OPEN");
+			DEBUG_I("SIM_EVENT_OPEN, status = %d", simEvent->eventStatus);
 			ipc_invoke_ril_cb(SIM_OPEN, (void*)buf);
 			break;
 		case SIM_EVENT_VERIFY_PIN1_IND:
 			if (buf[sizeof(simEventPacketHeader)] == 3)
 			{
-				DEBUG_I("SIM_PUK");
+				DEBUG_I("SIM_PUK, status = %d",simEvent->eventStatus);
 				ipc_invoke_ril_cb(SIM_STATUS, (void*)SIM_STATE_PUK);
 			} else {
-				DEBUG_I("SIM_PIN");
+				DEBUG_I("SIM_PIN, status = %d",simEvent->eventStatus);
 				ipc_invoke_ril_cb(SIM_STATUS, (void*)SIM_STATE_PIN);
 			}
 			break;
 		case SIM_EVENT_VERIFY_CHV:
-			DEBUG_I("SIM_EVENT_VERIFY_CHV");
+			DEBUG_I("SIM_EVENT_VERIFY_CHV, status = %d",simEvent->eventStatus);
 				ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_DISABLE_CHV:
-			DEBUG_I("SIM_EVENT_DISABLE_CHV");
+			DEBUG_I("SIM_EVENT_DISABLE_CHV, status = %d",simEvent->eventStatus);
 			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_ENABLE_CHV:
-			DEBUG_I("SIM_EVENT_ENABLE_CHV");
+			DEBUG_I("SIM_EVENT_ENABLE_CHV, status = %d",simEvent->eventStatus);
 			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_UNBLOCK_CHV:
-			DEBUG_I("SIM_EVENT_UNBLOCK_CHV");
+			DEBUG_I("SIM_EVENT_UNBLOCK_CHV, status = %d",simEvent->eventStatus);
 			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		case SIM_EVENT_FILE_INFO:
-			DEBUG_I("SIM_EVENT_FILE_INFO");	
+			DEBUG_I("SIM_EVENT_FILE_INFO, status = %d",simEvent->eventStatus);
 			memcpy(&simFileId, (buf + 15), 2);
 			/* work around for reading SMSC number */
 			if (simFileId == 0x6F42) {
@@ -185,7 +185,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				memcpy(&simSize, (buf + 26), 2);
 				sim_data.fileId = simFileId;
 				sim_data.size = simSize;
-				sim_data.fileType = 0x02;
+				sim_data.fileStructure = 0x02;
 				sim_data.simInd2 = 0x01;
 				sim_data.unk0 = 0x00;
 				sim_data.unk1 = 0x00;
@@ -202,7 +202,7 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 				ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
 			break;
 		case SIM_EVENT_READ_FILE:
-			DEBUG_I("SIM_EVENT_READ_FILE");
+			DEBUG_I("SIM_EVENT_READ_FILE, status = %d",simEvent->eventStatus);
 			memcpy(&simFileId, (buf + 11), 2);
 			/* work around for reading SMSC number */
 			if (simFileId == 0x6F42)
@@ -210,15 +210,22 @@ void sim_parse_event(uint8_t* buf, uint32_t bufLen)
 			else
 				ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
 			break;
+		case SIM_EVENT_UPDATE_FILE:
+			DEBUG_I("SIM_EVENT_UPDATE_FILE, status = %d",simEvent->eventStatus);
+			ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
+			break;
+		case SIM_EVENT_SEARCH_RECORD:
+			DEBUG_I("SIM_EVENT_SEARCCH_RECORD, status = %d",simEvent->eventStatus);
+			ipc_invoke_ril_cb(SIM_IO_RESPONSE, (void*)buf);
+			break;
 		case SIM_EVENT_CHANGE_CHV:
-			DEBUG_I("SIM_EVENT_CHANGE_PIN");
+			DEBUG_I("SIM_EVENT_CHANGE_PIN, status = %d",simEvent->eventStatus);
 			ipc_invoke_ril_cb(LOCK_STATUS, (void*)buf);
 			break;
 		default:
-			DEBUG_I("SIM_EVENT_DEFAULT");
+			DEBUG_I("%s: sim event = %d, sim event status = %d",__func__,simEvent->eventType,simEvent->eventStatus);
 			break;
 	}
-	DEBUG_I("%s: sim event = %d, sim event status = %d",__func__,simEvent->eventType,simEvent->eventStatus);
 }
 
 void sim_send_oem_req(uint8_t* simBuf, uint8_t simBufLen)
@@ -415,5 +422,47 @@ void sim_get_file_info(uint8_t hSim, uint16_t simDataType)
 	DEBUG_I("Sending sim_get_file_info\n");
 
 	sim_send_oem_data(hSim, SIM_OEM_REQUEST_GET_FILE_INFO, data, sizeof(simDataType)); //why it starts from 4? hell knows
+	free(data);
+}
+
+void sim_update_file_record(uint8_t hSim, simUpdateFile *sim_data, uint8_t *dataBuf)
+{
+	//TODO: verify, create and initialize session, send real hSim
+	uint8_t *data;
+
+	data = malloc(sizeof(simUpdateFile) + sim_data->bufLen);
+	memcpy(data, sim_data, sizeof(simUpdateFile));
+	memcpy(data + sizeof(simUpdateFile), dataBuf, sim_data->bufLen);
+
+	DEBUG_I("Sending sim_update_file_record\n");
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_UPDATE_FILE_RECORD, data, sizeof(simUpdateFile) + sim_data->bufLen + 5);  //why it starts from 4? hell knows
+	free(data);
+}
+
+void sim_update_file_binary(uint8_t hSim, simUpdateFile *sim_data, uint8_t *dataBuf)
+{
+	//TODO: verify, create and initialize session, send real hSim
+	uint8_t *data;
+
+	data = malloc(sizeof(simUpdateFile) + sim_data->bufLen);
+	memcpy(data, sim_data, sizeof(simUpdateFile));
+	memcpy(data + sizeof(simUpdateFile), dataBuf, sim_data->bufLen);
+
+	DEBUG_I("Sending sim_update_file_binary\n");
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_UPDATE_FILE_BINARY, data, sizeof(simDataRequest) + sim_data->bufLen + 5);  //why it starts from 4? hell knows
+	free(data);
+}
+
+void sim_search_file_record(uint8_t hSim, simSearchRecord *sim_data, uint8_t *dataBuf, uint8_t bufLen)
+{
+	//TODO: verify, create and initialize session, send real hSim
+	uint8_t *data;
+
+	data = malloc(sizeof(simSearchRecord) + bufLen);
+	memcpy(data, sim_data, sizeof(simSearchRecord));
+	memcpy(data + sizeof(simSearchRecord), dataBuf, bufLen);
+
+	DEBUG_I("Sending sim_update_file_binary\n");
+	sim_send_oem_data(hSim, SIM_OEM_REQUEST_SEARCH_RECORD, data, sizeof(simSearchRecord) + bufLen + 5);  //why it starts from 4? hell knows
 	free(data);
 }

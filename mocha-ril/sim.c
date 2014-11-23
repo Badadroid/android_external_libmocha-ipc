@@ -241,44 +241,44 @@ void ipc_sim_io_response(void* data)
 {
 	struct ril_request_sim_io_info *sim_io_info;
 	struct sim_file_response sim_file_response;
-	char *sim_response = NULL;
-	char tmp[3];
-	uint8_t buffer[15];
 	uint8_t *buf;
 	int i;
-	RIL_SIM_IO_Response sim_io_response;
+	RIL_SIM_IO_Response response;
 
 	sim_io_info = ril_request_sim_io_info_find_token(ril_data.tokens.sim_io);
+
 	if (sim_io_info == NULL) {
 		ALOGE("%s : Unable to find SIM I/O in the list!", __func__);
-
 		// Send the next SIM I/O in the list
 		ril_request_sim_io_next();
-
 		return;
 	}
 
 	simEventPacketHeader* simEvent = (simEventPacketHeader*)(data);
-	memset(&sim_io_response, 0, sizeof(sim_io_response));
+	memset(&response, 0, sizeof(response));
 
 	switch(simEvent->eventType)
 	{
 		case SIM_EVENT_FILE_INFO:
 			buf = (uint8_t *)data + sizeof(simEventPacketHeader);
-			fileInfoEvent* fileInfo = (fileInfoEvent*)(buf);
+			fileInfoEvent* fileInfo = (fileInfoEvent*)buf;
+
+			if (fileInfo->fileId != sim_io_info->fileid)
+				simEvent->eventStatus = SIM_NOT_SUPPORTED;
 
 			memset(&sim_file_response, 0, sizeof(sim_file_response));
-
-			sim_file_response.file_id[0] = ((fileInfo->fileId >> 8) & 0xFF);
-			sim_file_response.file_id[1] = ((fileInfo->fileId >> 0) & 0xFF);
 
 			sim_file_response.file_size[0] = ((fileInfo->fileSize >> 8) & 0xFF);
 			sim_file_response.file_size[1] = ((fileInfo->fileSize >> 0) & 0xFF);
 
-			// Fallback to EF
+			sim_file_response.file_id[0] = ((fileInfo->fileId >> 8) & 0xFF);
+			sim_file_response.file_id[1] = ((fileInfo->fileId >> 0) & 0xFF);
+
 			sim_file_response.file_type = SIM_FILE_TYPE_EF;
-			for (i = 0 ; i < sim_file_ids_count ; i++) {
-				if (sim_io_info->fileid == sim_file_ids[i].file_id) {
+			for (i = 0 ; i < sim_file_ids_count ; i++)
+			{
+				if (sim_io_info->fileid == sim_file_ids[i].file_id)
+				{
 					sim_file_response.file_type = sim_file_ids[i].type;
 					break;
 				}
@@ -289,61 +289,52 @@ void ipc_sim_io_response(void* data)
 			sim_file_response.access_condition[2] = 0xff;
 
 			sim_file_response.file_status = 0x01;
+
 			sim_file_response.file_length = 0x02;
 
-			sim_file_response.file_structure = SIM_FILE_STRUCTURE_LINEAR_FIXED;
-
-			if (fileInfo->fileId == 0x2FE2 || fileInfo->fileId == 0x6F46)
-				sim_file_response.file_structure = SIM_FILE_STRUCTURE_TRANSPARENT;
+			sim_file_response.file_structure = fileInfo->fileStructure - 1;
 
 			sim_file_response.record_length = fileInfo->recordSize;
 
-			sim_response = (char *) malloc(sizeof(struct sim_file_response) * 2 + 1);
-
-			bin2hex((void *) &sim_file_response, sizeof(struct sim_file_response), sim_response);
-			sim_io_response.simResponse = sim_response;
-
+			response.simResponse = data2string((void *) &sim_file_response, sizeof(sim_file_response));
 			break;
 		case SIM_EVENT_READ_FILE:
-			buf = (uint8_t *)data + sizeof(simEventPacketHeader) + sizeof(simDataResponse);
-
-			// Copy the data as-is
-			sim_response = calloc(1, sim_io_info->p3 * 2 + 1);
-			for (i = 0; i < sim_io_info->p3; i++)
-			{
-				sprintf(tmp, "%02X", buf[i]);
-				strcat(sim_response, tmp);
-			}
-			sim_response[sim_io_info->p3 * 2] = '\0';
-			sim_io_response.simResponse = sim_response;
+			buf = (uint8_t *)data + sizeof(simEventPacketHeader);
+			simDataResponse* simData = (simDataResponse*) buf;
+			response.simResponse = data2string(buf + sizeof(simDataResponse), simData->bufLen);
 			break;
+		case SIM_EVENT_UPDATE_FILE:
+		case SIM_EVENT_SEARCH_RECORD:
 		default:
-			sim_io_response.simResponse = NULL;
+			response.simResponse = NULL;
 			break;
 	}
 
 	switch (simEvent->eventStatus)
 	{
 		case SIM_OK:
-			sim_io_response.sw1 = 0x90;
-			sim_io_response.sw2 = 0x00;
+			response.sw1 = 0x90;
+			response.sw2 = 0x00;
 			break;
 		case SIM_FILE_NOT_FOUND:
-			sim_io_response.sw1 = 0x94;
-			sim_io_response.sw2 = 0x04;
+			response.sw1 = 0x94;
+			response.sw2 = 0x04;
 			break;
+		case SIM_NOT_SUPPORTED:
 		default:
-			sim_io_response.sw1 = 0x6F;
-			sim_io_response.sw2 = 0x00;
+			response.sw1 = 0x00;
+			response.sw2 = 0x00;
 			break;
 	}
 
-	ril_request_complete(ril_data.tokens.sim_io, RIL_E_SUCCESS, &sim_io_response, sizeof(sim_io_response));
+	ril_request_complete(ril_data.tokens.sim_io, RIL_E_SUCCESS, &response, sizeof(response));
 
-	if (sim_io_response.simResponse != NULL) {
-		ALOGD("%s: SIM response: %s", __func__, sim_io_response.simResponse);
-		free(sim_io_response.simResponse);
+	if (response.simResponse != NULL)
+	{
+		ALOGD("%s: SIM File = %x, SIM response: %s", __func__, sim_io_info->fileid, response.simResponse);
+		free(response.simResponse);
 	}
+
 
 	ril_request_sim_io_unregister(sim_io_info);
 	// Send the next SIM I/O in the list
@@ -467,7 +458,7 @@ void ril_state_update(ril_sim_state sim_state)
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 }
 
-void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen)
+void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t size)
 {
 	char *pin = ((char **) data)[0];
 
@@ -475,22 +466,22 @@ void ril_request_enter_sim_pin(RIL_Token t, void *data, size_t datalen)
 		ALOGE("%s: pin exceeds maximum length", __func__);
 		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 	}
-	sim_verify_chv(0x4, 0x0, pin);
+	sim_verify_chv(0x4, SIM_PTYPE_PIN1, pin);
 	ril_data.tokens.pin_status = t;
 }
 
-void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t datalen)
+void ril_request_enter_sim_puk(RIL_Token t, void *data, size_t size)
 {
 	char *puk;
 	char *pin;
 
-	if (data == NULL || datalen < (int) (2 * sizeof(char *)))
+	if (data == NULL || size < 2 * sizeof(char *))
 		goto error;
 
 	puk = ((char **) data)[0];
 	pin = ((char **) data)[1];
 
-	sim_unblock_chv(0x4, 0x2, puk, pin);
+	sim_unblock_chv(0x4, SIM_PTYPE_PUK1, puk, pin);
 	ril_data.tokens.puk_status = t;
 
 	return;
@@ -498,11 +489,11 @@ error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
 
-void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen)
+void ril_request_query_facility_lock(RIL_Token t, void *data, size_t size)
 {
 	char *facility;
 
-	if (data == NULL || datalen < sizeof(char *))
+	if (data == NULL || size < sizeof(char *))
 		goto error;
 
 	facility = ((char **) data)[0];
@@ -517,7 +508,7 @@ void ril_request_query_facility_lock(RIL_Token t, void *data, size_t datalen)
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
-void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen)
+void ril_request_set_facility_lock(RIL_Token t, void *data, size_t size)
 {
 	ALOGD("%s: test me!", __func__);
 
@@ -525,7 +516,7 @@ void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen)
 	char *lock;
 	char *password;
 
-	if (data == NULL || datalen < (int) (4 * sizeof(char *)))
+	if (data == NULL || size < 4 * sizeof(char *))
 		goto error;
 
 	facility = ((char **) data)[0];
@@ -537,13 +528,13 @@ void ril_request_set_facility_lock(RIL_Token t, void *data, size_t datalen)
 		{
 		ALOGE("%s: Request for enabling PIN", __func__);
 			//enable PIN lock
-			sim_enable_chv(0x4, 0x0, password);
+			sim_enable_chv(0x4, SIM_PTYPE_PIN1, password);
 		}
 		else if (!strcmp(lock, "0"))
 		{
 		ALOGE("%s: Request for disabling PIN", __func__);
 			//disable PIN Lock
-			sim_disable_chv(0x4, 0x0, password);
+			sim_disable_chv(0x4, SIM_PTYPE_PIN1, password);
 		}
 	}
 	else
@@ -557,19 +548,19 @@ error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
 }
 
-void ril_request_change_sim_pin(RIL_Token t, void *data, size_t datalen)
+void ril_request_change_sim_pin(RIL_Token t, void *data, size_t size)
 {
 	ALOGD("%s: test me!", __func__);
 	char *password_old;
 	char *password_new;
 
-	if (data == NULL || datalen < (int) (2 * sizeof(char *)))
+	if (data == NULL || size < 2 * sizeof(char *))
 		goto error;
 
 	password_old = ((char **) data)[0];
 	password_new = ((char **) data)[1];
 
-	sim_change_chv(0x4, 0x0, password_old, password_new);
+	sim_change_chv(0x4, SIM_PTYPE_PIN1, password_old, password_new);
 
 	ril_data.tokens.change_sim_pin = t;
 
@@ -583,7 +574,7 @@ error:
 * SIM I/O
 */
 int ril_request_sim_io_register(RIL_Token t, int command, int fileid,
-	int p1, int p2, int p3, char *data, int length,
+	int p1, int p2, int p3, void *data, size_t size,
 	struct ril_request_sim_io_info **sim_io_p)
 {
 	ALOGD("%s: fileid 0x%x", __func__, fileid);
@@ -602,7 +593,7 @@ int ril_request_sim_io_register(RIL_Token t, int command, int fileid,
 	sim_io->p2 = p2;
 	sim_io->p3 = p3;
 	sim_io->data = data;
-	sim_io->length = length;
+	sim_io->length = size;
 	sim_io->waiting = 1;
 	sim_io->token = t;
 
@@ -712,27 +703,21 @@ void ril_request_sim_io_next(void)
 }
 
 void ril_request_sim_io_complete(RIL_Token t, int command, int fileid,
-int p1, int p2, int p3, char *data, int length)
+int p1, int p2, int p3, void *data, size_t size)
 {
 	simDataRequest sim_data;
+	simUpdateFile sim_data_update;
+	simSearchRecord sim_data_search;
 	int i;
 
 	switch(command)
 	{
 		case SIM_COMMAND_GET_RESPONSE:
-			ALOGD("%s: fileid 0x%x", __func__, fileid);
 			sim_get_file_info(0x5, fileid);
 			break;
 		case SIM_COMMAND_READ_RECORD:
 		case SIM_COMMAND_READ_BINARY:
 			sim_data.fileId = fileid;
-			sim_data.fileType = SIM_FILE_TYPE_MF;
-			for (i = 0 ; i < sim_file_ids_count ; i++) {
-				if (sim_data.fileId == sim_file_ids[i].file_id) {
-					sim_data.fileType = sim_file_ids[i].type;
-					break;
-				}
-			}
 			sim_data.unk0 = 0x00;
 			sim_data.recordIndex = p1;
 			sim_data.unk1 = 0x00;
@@ -745,61 +730,94 @@ int p1, int p2, int p3, char *data, int length)
 			sim_data.unk6 = 0x00;
 			sim_data.unk7 = 0x00;
 
-			DEBUG_I("%s: Reading Record: fileId = 0x%x, packet no. %d\n", __func__, sim_data.fileId, sim_data.recordIndex);
 			if (command == SIM_COMMAND_READ_RECORD)
+			{
+				sim_data.fileStructure = 0x02;
 				sim_read_file_record(0x5, &sim_data);
+			}
 			else
+			{
+				sim_data.fileStructure = 0x01;
 				sim_read_file_binary(0x5, &sim_data);
+			}
 			break;
 		case SIM_COMMAND_UPDATE_BINARY:
 		case SIM_COMMAND_UPDATE_RECORD:
+			sim_data_update.fileId = fileid;
+			sim_data_update.unk0 = 0x00;
+			sim_data_update.recordIndex = p1;
+			sim_data_update.simInd2 = 0x01;
+			sim_data_update.bufLen = size;
+
+			if (command == SIM_COMMAND_UPDATE_RECORD)
+			{
+				sim_data_update.fileStructure = 0x02;
+				sim_update_file_record(0x5, &sim_data_update, data);
+			}
+			else
+			{
+				sim_data_update.fileStructure = 0x01;
+				sim_update_file_binary(0x5, &sim_data_update, data);
+			}
+			break;
 		case SIM_COMMAND_SEEK:
+			sim_data_search.fileId = fileid;
+			sim_data_search.unk0 = 0x00;
+			sim_data_search.unk0 = 0x01;
+			sim_data_search.recordIndex = p1;
+			sim_data_search.simInd2 = 0x01;
+			sim_data_search.unk2 = 0x04;
+			sim_data_search.recordSize = p3;
+			sim_search_file_record(0x5, &sim_data_search, data, size);
+			break;
 		default:
 			ALOGE("%s: Unsupported SIM_IO comand 0x%x", __func__, command);
 			break;
 	}
 }
 
-void ril_request_sim_io(RIL_Token t, void *data, int length)
+void ril_request_sim_io(RIL_Token t, void *data, size_t size)
 {
 
 	struct ril_request_sim_io_info *sim_io_info = NULL;
 	RIL_SIM_IO_v6 *sim_io = NULL;
 
 	void *sim_io_data = NULL;
-	int sim_io_data_length = 0;
-	int rc;
+	int sim_io_size = 0;
+	int result = 0;
+	int rc, i;
 
-	if (data == NULL || length < (int) sizeof(*sim_io))
+	if (data == NULL || size < sizeof(RIL_SIM_IO_v6))
 		goto error;
 
 	sim_io = (RIL_SIM_IO_v6 *) data;
 
-	if (sim_io->command != SIM_COMMAND_GET_RESPONSE)
-		if (sim_io->command != SIM_COMMAND_READ_RECORD)
-			if (sim_io->command != SIM_COMMAND_READ_BINARY)
-			{
-				ALOGE("%s: Unsupported SIM_IO comand 0x%x", __func__, sim_io->command);
-				goto error;
-			}
-
-	if (sim_io->fileid == 0x6fad || sim_io->fileid == 0x6fcd || sim_io->fileid == 0x6fc5 ||sim_io->fileid == 0x6f16 || sim_io->fileid == 0x6f14)
-	{
-		ALOGE("%s: Unsupported SIM_IO file 0x%x", __func__, sim_io->fileid);
-		goto error;
-	}
-
 	// SIM IO data should be a string if present
-	if (sim_io->data != NULL) {
-		sim_io_data_length = strlen(sim_io->data) / 2;
-		if (sim_io_data_length > 0) {
-			sim_io_data = calloc(1, sim_io_data_length);
-			hex2bin(sim_io->data, sim_io_data_length * 2, sim_io_data);
+	if (sim_io->data != NULL)
+	{
+		ALOGD("%s: sim_io->fileid = %x, sim_io->data = %s", __func__, sim_io->fileid, sim_io->data);
+		if (sim_io->data[0] == '2' && sim_io->data[1] == '0')
+			//FIXME: something wrong with it
+			goto error;
+		else
+		{
+			sim_io_size = string2data_size(sim_io->data);
+			if (sim_io_size == 0)
+				goto error;
+			sim_io_data = string2data(sim_io->data);
+				if (sim_io_data == NULL)
+				goto error;
 		}
 	}
 
+	if (sim_io->pin2 != NULL)
+	{
+		//Add pin2 checking
+		goto error;
+	}
+
 	rc = ril_request_sim_io_register(t, sim_io->command, sim_io->fileid,
-		sim_io->p1, sim_io->p2, sim_io->p3, sim_io_data, sim_io_data_length,
+		sim_io->p1, sim_io->p2, sim_io->p3, sim_io_data, sim_io_size,
 		&sim_io_info);
 
 	if (rc < 0 || sim_io_info == NULL) {
@@ -827,14 +845,16 @@ void ril_request_sim_io(RIL_Token t, void *data, int length)
 	ril_data.tokens.sim_io = t;
 
 	ril_request_sim_io_complete(t, sim_io->command, sim_io->fileid,
-		sim_io->p1, sim_io->p2, sim_io->p3, sim_io_data, sim_io_data_length);
+		sim_io->p1, sim_io->p2, sim_io->p3, sim_io_data, sim_io_size);
 
 	if (sim_io_data != NULL)
 		free(sim_io_data);
+
 	sim_io_info->data = NULL;
 	sim_io_info->length = 0;
 
 	return;
 error:
 	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+
 }

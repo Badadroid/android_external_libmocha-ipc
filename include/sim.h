@@ -59,6 +59,7 @@ enum SIM_EVENT_TYPE
 	SIM_EVENT_DISABLE_FDN = 15,
 	SIM_EVENT_ENABLE_FDN = 16,
 	SIM_EVENT_READ_RECORD_FILE_ALL = 17,
+	SIM_EVENT_SEARCH_RECORD = 20,
 	SIM_EVENT_OPEN_CHANNEL = 23,
 	SIM_EVENT_CLOSE_CHANNEL = 24,
 	SIM_EVENT_END = 25,	
@@ -72,16 +73,18 @@ enum SIM_OEM_REQUEST_TYPE
 	SIM_OEM_REQUEST_GET_FILE_INFO_EX = 4,
 	SIM_OEM_REQUEST_READ_FILE_BINARY = 6,
 	SIM_OEM_REQUEST_READ_FILE_RECORD = 7,
+	SIM_OEM_REQUEST_UPDATE_FILE_BINARY = 8,	//TODO: Confirm
+	SIM_OEM_REQUEST_UPDATE_FILE_RECORD = 9,
 	SIM_OEM_REQUEST_VERIFY_CHV = 11,
-	SIM_OEM_REQUEST_PERFORM_AKA = 19,
-	SIM_OEM_REQUEST_PERFORM_SIM = 20,
-	SIM_OEM_REQUEST_CHANGE_CHV = 15,
-	SIM_OEM_REQUEST_DISABLE_CHV = 13,
 	SIM_OEM_REQUEST_ENABLE_CHV = 12,
+	SIM_OEM_REQUEST_DISABLE_CHV = 13,
 	SIM_OEM_REQUEST_UNBLOCK_CHV = 14,
+	SIM_OEM_REQUEST_CHANGE_CHV = 15,
 	SIM_OEM_REQUEST_DISABLE_FDN = 16,
 	SIM_OEM_REQUEST_ENABLE_FDN = 17,
 	SIM_OEM_REQUEST_SEARCH_RECORD = 18,
+	SIM_OEM_REQUEST_PERFORM_AKA = 19,
+	SIM_OEM_REQUEST_PERFORM_SIM = 20,
 	SIM_OEM_REQUEST_SET_MESSENGER_STATUS = 24,
 	SIM_OEM_REQUEST_OPEN_CHANNEL = 25,
 	SIM_OEM_REQUEST_CLOSE_CHANNEL = 26,
@@ -104,6 +107,14 @@ enum SIM_EVENT_STATUS
 	SIM_INIT_ERROR = 9,
 	SIM_INCORRECT_PARAMS = 10,
 	SIM_INSERT_DELAYED = 11,
+};
+
+enum SIM_PTYPE
+{
+	SIM_PTYPE_PIN1 = 0x00, /**< PIN 1 code */
+	SIM_PTYPE_PIN2 = 0x01, /**< PIN 2 code */
+	SIM_PTYPE_PUK1 = 0x02, /**< PUK 1 code */
+	SIM_PTYPE_PUK2 = 0x03, /**< PUK 2 code */
 };
 
 struct simPacketHeader {
@@ -157,7 +168,7 @@ typedef struct
 typedef struct
 {
 	uint16_t 	fileId;
-	uint8_t 	fileType;
+	uint8_t 	fileStructure;
 	uint32_t 	unk0; //always 0x00
 	uint32_t 	recordIndex;
 	uint32_t 	unk1; //always 0x00
@@ -174,6 +185,27 @@ typedef struct
 typedef struct
 {
 	uint16_t 	fileId;
+	uint8_t 	fileStructure;
+	uint32_t 	unk0; //always 0x00
+	uint32_t 	recordIndex;
+	uint8_t 	simInd2; //always 0x01
+	uint32_t 	bufLen;
+} __attribute__((__packed__))  simUpdateFile;
+
+typedef struct
+{
+	uint16_t 	fileId;
+	uint8_t 	unk0; //always 0x00
+	uint32_t 	unk1; //always 0x01
+	uint32_t 	recordIndex;
+	uint8_t 	simInd2; //always 0x01
+	uint8_t 	unk2; //always 0x04
+	uint32_t 	recordSize;
+} __attribute__((__packed__))  simSearchRecord;
+
+typedef struct
+{
+	uint16_t 	fileId;
 	uint32_t 	bufLen;
 	//uint8_t		*buf;
 } __attribute__((__packed__))  simDataResponse;
@@ -182,7 +214,8 @@ typedef struct
 {
 	uint32_t unknown;
 	uint16_t fileId;
-	uint8_t unknown2[9];
+	uint8_t fileStructure;
+	uint8_t unknown2[8];
 	uint8_t recordSize;
 	uint8_t align[3];
 	uint8_t recordCount;
@@ -209,5 +242,8 @@ void sim_open_to_modem(uint8_t hSim);
 void sim_read_file_record(uint8_t hSim, simDataRequest *sim_data);
 void sim_read_file_binary(uint8_t hSim, simDataRequest *sim_data);
 void sim_get_file_info(uint8_t hSim, uint16_t simDataType);
+void sim_update_file_record(uint8_t hSim, simUpdateFile *sim_data, uint8_t *dataBuf);
+void sim_update_file_binary(uint8_t hSim, simUpdateFile *sim_data, uint8_t *dataBuf);
+void sim_search_file_record(uint8_t hSim, simSearchRecord *sim_data, uint8_t *dataBuf, uint8_t bufLen);
 
 #endif
