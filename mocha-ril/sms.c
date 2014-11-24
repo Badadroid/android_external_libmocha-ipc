@@ -27,11 +27,6 @@
 #include "util.h"
 #include <tapi_nettext.h>
 
-
-/**
- * Format conversion utils
- */
-
 void ipc_sms_send_status(void* data)
 {
 	tapiNettextCallBack* callBack = (tapiNettextCallBack*)(data);
@@ -61,121 +56,93 @@ void ipc_sms_send_status(void* data)
  * Outgoing SMS functions
  */
 
-/**
- * In: RIL_REQUEST_SEND_SMS
- *   Send an SMS message.
- *
- * Out: TAPI_NETTEXT_SEND
- */
-void ril_request_send_sms(RIL_Token t, void *data, size_t length)
+void ril_request_send_sms(RIL_Token t, void *data, size_t size)
 {
 	tapiNettextInfo* mess;
-	const char *pdu;
-	char *message;
-	const unsigned char *smsc;
-	unsigned char *pdu_hex;
-	int smsc_length, pdu_length, pdu_hex_length, pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, i, send_msg_type, message_offset;
-	message = NULL;
+	char **values = NULL;
+	unsigned char *smsc = NULL;
+	unsigned char *pdu = NULL;
+	size_t pdu_size;
+	char *message = NULL;
+	int pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, send_msg_type;
 
-	if (data == NULL || length < 2 * sizeof(char *))
-		return;
+	if (data == NULL || size < 2 * sizeof(char *))
+		goto error;
 
-	pdu_length = 0;
-	pdu = ((char **) data)[1];
+	values = (char **) data;
+	if (values[1] == NULL)
+		goto error;
 
-	if (pdu != NULL) {
-		pdu_length = strlen(pdu) + 1;
+	ALOGD("%s: PDU: %s", __func__, values[1]);
+
+	pdu_size = string2data_size(values[1]);
+	if (pdu_size == 0)
+		goto error;
+
+	pdu = string2data(values[1]);
+	if (pdu == NULL)
+		goto error;
+
+	if (values[0] != NULL) {
+		smsc = string2data(values[0]);
+		if (smsc == NULL)
+			goto error;
+	} else {
+		smsc = string2data(ril_data.smsc_number);
+		if (smsc == NULL)
+			goto error;
 	}
-
-	/* We first need to get SMS SVC before sending the message */
-	smsc_length = strlen((char *) ril_data.smsc_number);
-	smsc = (unsigned char *)ril_data.smsc_number;
-
-	if (pdu == NULL || pdu_length <= 0 || smsc == NULL || smsc_length <= 0) {
-		ALOGE("Provided PDU or SMSC is invalid! Aborting");
-		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-		return;
-	}
-
-	if ((pdu_length / 2 + smsc_length) > 0xfe) {
-		ALOGE("PDU or SMSC too large, aborting");
-		ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
-		return;
-	}
-	pdu_hex_length = pdu_length % 2 == 0 ? pdu_length / 2 :	(pdu_length ^ 1) / 2;
-	pdu_hex = calloc(pdu_hex_length, sizeof(*pdu_hex));
-	hex2bin(pdu, pdu_length, pdu_hex);
 
 	/* PDU parsing */
-	pdu_type = pdu_hex[0];
+	pdu_type = pdu[0];
 	ALOGD("%s: PDU Type is 0x%x", __func__, pdu_type);
 
 	pdu_tp_da_index = 2;
-	pdu_tp_da_len = pdu_hex[pdu_tp_da_index];
+	pdu_tp_da_len = pdu[pdu_tp_da_index];
 	ALOGD("%s: PDU TP-DA Len is 0x%x", __func__, pdu_tp_da_len);
 
 	pdu_tp_udl_index = pdu_tp_da_index + pdu_tp_da_len / 2 + 4;
 	if (pdu_tp_da_len % 2 > 0)
 		pdu_tp_udl_index += 1;
-	pdu_tp_ud_len = pdu_hex[pdu_tp_udl_index];
+	pdu_tp_ud_len = pdu[pdu_tp_udl_index];
 	ALOGD("%s: PDU TP-UD Len is 0x%x", __func__, pdu_tp_ud_len);
 
 	pdu_tp_ud_index = pdu_tp_udl_index + 1;
 
 	if (pdu_type == 0x41 || pdu_type == 0x61) {
 		ALOGD("%s: We are sending a multi-part message!",  __func__);
-		ALOGD("%s: We are sending message %d on %d", __func__, pdu_hex[pdu_tp_ud_index + 5], pdu_hex[pdu_tp_ud_index + 4]);
+		ALOGD("%s: We are sending message %d on %d", __func__, pdu[pdu_tp_ud_index + 5], pdu[pdu_tp_ud_index + 4]);
 		send_msg_type = 1; //multi-part
 	}
 	else
 		send_msg_type = 0;
 
-	DEBUG_I("%s : pdu : %s", __func__, pdu);
-
 	/* Convert PDU to tapiNettextInfo structure */
 
 	mess = (tapiNettextInfo *)calloc(1, sizeof(*mess));
-	mess->NPI_ToNumber= 0x01; // 01
 
-	if (pdu_hex[pdu_tp_da_index + 1] == 0x91)
-		mess->TON_ToNumber= 0x01; // 01 - international
-	else
-		mess->TON_ToNumber= 0x00; // 00 - national
+	mess->NPI_ToNumber = 0x01;
+
+	if (pdu[pdu_tp_da_index + 1] == 0x91)
+		mess->TON_ToNumber= 0x01;
 
 	mess->lengthToNumber = pdu_tp_da_len;
 
 	if (pdu_tp_da_len % 2 > 0)
 		pdu_tp_da_len = pdu_tp_da_len + 1;
 
-	i = 0;
-	while (i < pdu_tp_da_len) {
-		mess->szToNumber[i] = pdu[i + 9];
-		if ( pdu[i + 8] != 'f')
-		mess->szToNumber[i+1] =pdu[i + 8];
-		i = i + 2;
-	}
+	bcd2ascii(mess->szToNumber, pdu + pdu_tp_da_index + 2, pdu_tp_da_len / 2);
 
 	mess->scTime = time(NULL);
+
 	mess->NPI_SMSC = 0x01;
 
-	if (smsc[2] == 0x39 && smsc [3] == 0x31)
-		mess->TON_SMSC = 0x01; // 01 - international
-	else
-		mess->TON_SMSC= 0x00; // 00 - national
+	if (smsc[1] == 0x91)
+		mess->TON_SMSC = 0x01;
 
-	if (smsc[smsc_length - 2] == 'f' || smsc[smsc_length - 2] == 'F')
-		mess->lengthSMSC = smsc_length - 5;
-	else
-		mess->lengthSMSC = smsc_length - 4;
+	mess->lengthSMSC = (smsc[0] - 1) * 2;
 
-	i = 4;
-
-	while (i < smsc_length) {
-		mess->SMSC[i - 4] = smsc[i + 1];
-		if (smsc[i] != 'f')
-			mess->SMSC[i - 3] =smsc[i];
-		i = i + 2;
-	}
+	bcd2ascii(mess->SMSC, smsc + 2, smsc[0] - 1);
 
 	if (pdu_type == 0x21 || pdu_type == 0x61)
 		mess->bSRR = 0x01;
@@ -191,30 +158,23 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 	else
 		mess->messageLength = pdu_tp_ud_len;
 
-	if (pdu_hex[pdu_tp_udl_index - 1] == 8) {
+	if (pdu[pdu_tp_udl_index - 1] == 8) {
 		DEBUG_I("%s : DCS - Unicode", __func__);
 		mess->alphabetType = 0x03; //Unicode
 		if (send_msg_type == 0)
-			for (i = 0; i < pdu_tp_ud_len; i++)
-				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + i];
+			memcpy(mess->messageBody, pdu + pdu_tp_ud_index, pdu_tp_ud_len);
 		else
-			for (i = 0; i < pdu_tp_ud_len - 1; i++)
-				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + 1 + i];
+			memcpy(mess->messageBody, pdu + pdu_tp_ud_index + 1, pdu_tp_ud_len - 1);
 	} else {
 		DEBUG_I("%s : DCS - GSM7", __func__);
 		mess->alphabetType = 0x00; //GSM7
-
-		gsm72ascii(pdu_hex+pdu_tp_ud_index, &message, pdu_tp_ud_len);
-
+		gsm72ascii(pdu + pdu_tp_ud_index, &message, pdu_size - pdu_tp_ud_index);
 		if (send_msg_type == 0)	{
-			for (i = 0; i < pdu_tp_ud_len; i++)
-				mess->messageBody[i] = message[i];
+			memcpy(mess->messageBody, message, pdu_tp_ud_len);
 		} else {
 			mess->messageLength = mess->messageLength - 1;
-			for (i = 0; i < pdu_tp_ud_len - 2; i++)
-				mess->messageBody[i] = message[i + 2];
-			for (i = 0; i < 5; i++)
-				mess->messageBody[i] = pdu_hex[pdu_tp_ud_index + 1 + i];
+			memcpy(mess->messageBody, pdu + pdu_tp_ud_index + 1, 5);
+			memcpy(mess->messageBody + 5, message + 7, pdu_tp_ud_len - 7);
 		}
 	}
 	tapi_nettext_set_net_burst(0);
@@ -222,23 +182,18 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t length)
 	ril_data.tokens.outgoing_sms = t;
 
 	free(mess);
-	free(pdu_hex);
+	free(pdu);
+	free(smsc);
+
 	if(message != NULL)
 		free(message);
+
+	return;
+
+error:
+
+	ril_request_complete(t, RIL_E_SMS_SEND_FAIL_RETRY, NULL, 0);
 }
-
-
-/**
- * Incoming SMS functions
- */
-
-/**
- * In: IPC_INCOMING_SMS
- *   Message to notify an incoming message
- *
- * Out: RIL_UNSOL_RESPONSE_NEW_SMS or RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT
- *   Notify RILJ about the incoming message
- */
 
 void ipc_incoming_sms(void* data)
 {
