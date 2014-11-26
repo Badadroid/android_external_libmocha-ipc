@@ -77,170 +77,86 @@ void list_head_free(struct list_head *list)
 }
 
 /**
- * Converts a hexidecimal string to binary
- */
-void hex2bin(const char *data, int length, unsigned char *buf)
-{
-	int i = 0;
-	char b = 0;
-	unsigned char *p = buf;
-
-	length ^= 0x01;
-
-	while(i < length) {
-		b = 0;
-
-		if(data[i] - '0' < 10)
-			b = data[i] - '0';
-		else if(data[i] - 'a' < 7)
-			b = data[i] - 'a' + 10;
-		else if(data[i] - 'A' < 7)
-			b = data[i] - 'A' + 10;
-		i++;
-
-		b = (b << 4);
-
-		if(data[i] - '0' < 10)
-			b |= data[i] - '0';
-		else if(data[i] - 'a' < 7)
-			b |= data[i] - 'a' + 10;
-		else if(data[i] - 'A' < 7)
-			b |= data[i] - 'A' + 10;
-		i++;
-
-		*p++ = b;
-	}
-}
-
-/**
- * Converts binary data to a hexidecimal string
- */
-void bin2hex(const unsigned char *data, int length, char *buf)
-{
-	int i;
-	char b;
-	char *p = buf;
-
-	for(i = 0; i < length; i++) {
-		b = 0;
-
-		b = (data[i] >> 4 & 0x0f);
-		b += (b < 10) ? '0' : ('a' - 10);
-		*p++ = b;
-
-		b = (data[i] & 0x0f);
-		b += (b < 10) ? '0' : ('a' - 10);
-		*p++ = b;
-	}
-
-	*p = '\0';
-}
-
-/**
  * Converts GSM7 (8 bits) data to ASCII (7 bits)
  */
-int gsm72ascii(unsigned char *data, char **data_dec, int length)
+size_t gsm72ascii(unsigned char *gsm7, char **ascii, size_t size)
 {
 	int t, u, d, o = 0;
-	int i;
+	size_t i;
 
-	int dec_length;
+	int ascii_length;
 	char *dec;
 
-	dec_length = ((length * 8) - ((length * 8) % 7) ) / 7;
-	dec = malloc(dec_length);
+	ascii_length = ((size * 8) - ((size * 8) % 7) ) / 7;
 
-	memset(dec, 0, dec_length);
+	dec = malloc(ascii_length);
+	memset(dec, 0, ascii_length);
 
-	for(i=0 ; i < length ; i++)
+	for(i = 0 ; i < size ; i++)
 	{
 		d = 7 - i % 7;
 		if(d == 7 && i != 0)
 			o++;
 
-		t = (data[i] - (((data[i] >> d) & 0xff) << d));
-		u = (data[i] >> d) & 0xff;
+		t = (gsm7[i] - (((gsm7[i] >> d) & 0xff) << d));
+		u = (gsm7[i] >> d) & 0xff;
 
-		dec[i+o]+=t << (i + o) % 8;
+		dec[i + o]+=t << (i + o) % 8;
 
 		if(u)
-			dec[i+1+o]+=u;
+			dec[i + 1 + o]+=u;
 	}
 
-	*data_dec = dec;
+	*ascii = dec;
 
-	return dec_length;
+	return ascii_length;
 }
 
 /**
  * Converts ASCII (7 bits) data to GSM7 (8 bits)
  */
-int ascii2gsm7(char *data, unsigned char **data_enc, int length)
-
+size_t ascii2gsm7(char *ascii, unsigned char **gsm7)
 {
-
 	int d_off, d_pos, a_off, a_pos = 0;
-
 	int i;
 
-	int enc_length;
-
+	int ascii_length;
+	int gsm7_length;
 	unsigned char *enc;
 
-	enc_length = ((length * 7) - (length * 7) % 8) / 8;
+	ascii_length = strlen(ascii);
 
-	enc_length += (length * 7) % 8 > 0 ? 1 : 0;
+	gsm7_length = ((ascii_length * 7) - (ascii_length * 7) % 8) / 8;
+	gsm7_length += (ascii_length * 7) % 8 > 0 ? 1 : 0;
 
-	//FIXME: why does samsung does that?
+	enc = malloc(gsm7_length);
+	memset(enc, 0, gsm7_length);
 
-	enc_length++;
-
-	enc = malloc(enc_length);
-
-	memset(enc, 0, enc_length);
-
-	for (i=0 ; i < length ; i++)
-
+	for (i = 0 ; i < ascii_length ; i++)
 	{
-
 		// offset from the right of data to keep
-
 		d_off = i % 8;
 
 		// position of the data we keep
-
 		d_pos = ((i * 7) - (i * 7) % 8) / 8;
-
 		d_pos += (i * 7) % 8 > 0 ? 1 : 0;
 
 		// adding the data with correct offset
-
-		enc[d_pos] |= data[i] >> d_off;
+		enc[d_pos] |= ascii[i] >> d_off;
 
 		// numbers of bits to omit to get data to add another place
-
 		a_off = 8 - d_off;
 
 		// position (on the encoded feed) of the data to add
-
 		a_pos = d_pos - 1;
 
 		// adding the data to add at the correct position
-
-		enc[a_pos] |= data[i] << a_off;
-
+		enc[a_pos] |= ascii[i] << a_off;
 	}
 
-	*data_enc = enc;
+	*gsm7 = enc;
 
-	//FIXME: what is going on here?
-
-//	enc[enc_length - 2] |= 0x30;
-
-//	enc[enc_length - 1] = 0x02;
-
-	return enc_length;
-
+	return gsm7_length;
 }
 
 void hex_dump(void *data, int size)
@@ -332,38 +248,6 @@ int utf8_write(char *utf8, int offset, int v)
 		}
 	}
 	return result;
-}
-
-SmsCodingScheme sms_get_coding_scheme(int dataCoding)
-{
-	switch (dataCoding >> 4) {
-	case 0x00:
-	case 0x02:
-	case 0x03:
-		return SMS_CODING_SCHEME_GSM7;
-	case 0x01:
-		if (dataCoding == 0x10)
-			return SMS_CODING_SCHEME_GSM7;
-		if (dataCoding == 0x11)
-			return SMS_CODING_SCHEME_UCS2;
-		break;
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
-		if (dataCoding & 0x20)
-			return SMS_CODING_SCHEME_UNKNOWN;
-		if (((dataCoding >> 2) & 3) == 0)
-			return SMS_CODING_SCHEME_GSM7;
-		if (((dataCoding >> 2) & 3) == 2)
-			return SMS_CODING_SCHEME_UCS2;
-		break;
-	case 0xF:
-		if (!(dataCoding & 4))
-			return SMS_CODING_SCHEME_GSM7;
-		break;
-	}
-	return SMS_CODING_SCHEME_UNKNOWN;
 }
 
 int tun_alloc(char *dev, int flags)

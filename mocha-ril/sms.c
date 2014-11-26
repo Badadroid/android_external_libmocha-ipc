@@ -300,12 +300,8 @@ void ipc_incoming_sms(void* data)
 
 	if (nettextInfo->TON_FromNumber == 5 )
 	{
-		ascii2gsm7(number_oa, (unsigned char **)&number_tmp, strlen(number_oa));
-
-		number2 = malloc((strlen(number_tmp)* 2) + 1);
-		memset(number2, 0, (strlen(number_tmp)* 2) + 1);
-
-		bin2hex((unsigned char *)number_tmp, strlen(number_tmp), number2);
+		len_mess = ascii2gsm7(number_oa, (unsigned char **)&number_tmp);
+		number2 = data2string((unsigned char *)number_tmp, strlen(number_tmp));
 
 		tp_oa = malloc(strlen(number2)  + 5);
 		memset(tp_oa, 0, strlen(number2) + 5);
@@ -461,12 +457,8 @@ void ipc_incoming_sms(void* data)
 			strcat(message_bin, "0000000");
 			strcat(message_bin, (char *)(mess + 5));
 
-			len_mess = ascii2gsm7(message_bin, (unsigned char **)&message_tmp, strlen(message) + 2);
-
-			tp_ud = malloc(len_mess  + 1);
-			memset(tp_ud, 0, len_mess + 1);
-
-			bin2hex((unsigned char *)(message_tmp), len_mess / 2, tp_ud);
+			len_mess = ascii2gsm7(message_bin, (unsigned char **)&message_tmp);
+			tp_ud = data2string((unsigned char *)message_tmp, len_mess);
 
 			i = 0;
 			while (i < 12) {
@@ -481,12 +473,8 @@ void ipc_incoming_sms(void* data)
 		}
 		else
 		{
-			len_mess = ascii2gsm7((char *)mess, (unsigned char **)&message_tmp, strlen(message));
-
-			tp_ud = malloc(len_mess + 1);
-			memset(tp_ud, 0, len_mess + 1);
-
-			bin2hex((unsigned char *)message_tmp, len_mess / 2, tp_ud);	
+			len_mess = ascii2gsm7((char *)mess, (unsigned char **)&message_tmp);
+			tp_ud = data2string((unsigned char *)message_tmp, len_mess);
 		}
 	}
 
