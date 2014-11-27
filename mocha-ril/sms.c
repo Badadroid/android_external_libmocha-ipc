@@ -42,12 +42,14 @@ void ipc_sms_send_status(void* data)
 			DEBUG_I("%s : Message sent  ", __func__);
 			response.errorCode = -1;
 			ril_request_complete(ril_data.tokens.outgoing_sms, RIL_E_SUCCESS, &response, sizeof(response));
+			ril_data.tokens.outgoing_sms = RIL_TOKEN_DATA_WAITING;
 			return;
 
 		default:
 			DEBUG_I("%s : Message sending error  ", __func__);
 			response.errorCode = 500;
 			ril_request_complete(ril_data.tokens.outgoing_sms, RIL_E_GENERIC_FAILURE, &response, sizeof(response));
+			ril_data.tokens.outgoing_sms = RIL_TOKEN_DATA_WAITING;
 			return;
 	}
 }
@@ -66,7 +68,7 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t size)
 	char *message = NULL;
 	int pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, send_msg_type;
 
-	if (data == NULL || size < 2 * sizeof(char *))
+	if (data == NULL || size < 2 * sizeof(char *) || ril_data.tokens.outgoing_sms != RIL_TOKEN_DATA_WAITING)
 		goto error;
 
 	values = (char **) data;
