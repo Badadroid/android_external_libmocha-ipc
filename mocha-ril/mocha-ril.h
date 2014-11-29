@@ -182,6 +182,7 @@ struct ril_state {
 	uint8_t rac_id;
 	uint16_t lac_id;
 	int gprs_last_failed_cid;
+	int last_call_fail_cause;
 	char proper_plmn[9];
 	char SPN[NET_MAX_SPN_LEN];
 	char name[NET_MAX_NAME_LEN];

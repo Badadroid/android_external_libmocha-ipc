@@ -129,6 +129,9 @@ void ipc_call_end(void* data)
 	callCtxt = find_ril_call_context(callEndInfo->callId);
 	if(!callCtxt)
 		return;
+
+	ril_data.state.last_call_fail_cause = callEndInfo->cause;
+
 	if(callCtxt->token != 0)
 	{
 		ril_request_complete(callCtxt->token, RIL_E_SUCCESS, NULL, 0);
@@ -303,8 +306,10 @@ void ipc_call_error(void* data)
 	if(!errorCtxt)
 		return;
 
+	ril_data.state.last_call_fail_cause = errorInd->error;
+
 	if(errorCtxt->token != 0)
-		ril_request_complete(errorCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		ril_request_complete(errorCtxt->token, RIL_E_SUCCESS, NULL, 0);
 	release_ril_call_context(errorCtxt);
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
@@ -605,10 +610,22 @@ error:
 void ril_request_last_call_fail_cause(RIL_Token t)
 {
 	RIL_LastCallFailCause fail_cause;
-	
-	ALOGE("%s: Implement me!", __func__);
-	
-	fail_cause = CALL_FAIL_NORMAL;
+
+	switch (ril_data.state.last_call_fail_cause) {
+		case 43:
+			fail_cause = CALL_FAIL_UNOBTAINABLE_NUMBER;
+		case 66:
+		case 24:
+			fail_cause = CALL_FAIL_NORMAL;
+			break;
+		case 7:
+			fail_cause = CALL_FAIL_BUSY;
+		case 44:
+			fail_cause = CALL_FAIL_CONGESTION;
+			break;
+		default:
+			fail_cause = CALL_FAIL_ERROR_UNSPECIFIED;
+	}
 
 	ril_request_complete(t, RIL_E_SUCCESS, &fail_cause, sizeof(RIL_LastCallFailCause));
 }
