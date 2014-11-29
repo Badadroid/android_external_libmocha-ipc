@@ -239,12 +239,14 @@ void ipc_call_hold(void* data)
 	heldCtxt = find_ril_call_context(holdCnf->callId);
 	if(!heldCtxt)
 		return;
-
-	heldCtxt->call_state = RIL_CALL_HOLDING;
 	
-	if(heldCtxt->token != 0)
-	{
-		ril_request_complete(heldCtxt->token, RIL_E_SUCCESS, NULL, 0);
+	if(heldCtxt->token != 0) {
+		if (holdCnf->cause == 0) {
+			ril_request_complete(heldCtxt->token, RIL_E_SUCCESS, NULL, 0);
+			heldCtxt->call_state = RIL_CALL_HOLDING;
+		}
+		else
+			ril_request_complete(heldCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
 		heldCtxt->token = 0;
 	}
 }
@@ -260,20 +262,29 @@ void ipc_call_swap(void* data)
 	heldCtxt = find_ril_call_context(swapCnf->heldCallId);
 	if(!activatedCtxt || !heldCtxt)
 		return;
-
-	activatedCtxt->call_state = RIL_CALL_ACTIVE;
-	heldCtxt->call_state = RIL_CALL_HOLDING;
 	
-	if(heldCtxt->token != 0)
-	{
-		ril_request_complete(heldCtxt->token, RIL_E_SUCCESS, NULL, 0);
+	if(heldCtxt->token != 0) {
+		if (swapCnf->cause == 0) {
+			ril_request_complete(heldCtxt->token, RIL_E_SUCCESS, NULL, 0);
+			activatedCtxt->call_state = RIL_CALL_ACTIVE;
+			heldCtxt->call_state = RIL_CALL_HOLDING;
+		}
+		else
+			ril_request_complete(heldCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		heldCtxt->token = 0;
+		activatedCtxt->token = 0;
 	}
-	else if(activatedCtxt->token != 0)
-	{
-		ril_request_complete(activatedCtxt->token, RIL_E_SUCCESS, NULL, 0);
+	else if(activatedCtxt->token != 0) {
+		if (swapCnf->cause == 0) {
+			ril_request_complete(activatedCtxt->token, RIL_E_SUCCESS, NULL, 0);
+			activatedCtxt->call_state = RIL_CALL_ACTIVE;
+			heldCtxt->call_state = RIL_CALL_HOLDING;
+		}
+		else
+			ril_request_complete(activatedCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+		heldCtxt->token = 0;
+		activatedCtxt->token = 0;
 	}
-	heldCtxt->token = 0;
-	activatedCtxt->token = 0;
 }
 
 void ipc_call_activate(void* data)
@@ -286,13 +297,15 @@ void ipc_call_activate(void* data)
 	activatedCtxt = find_ril_call_context(activateCnf->callId);
 	if(!activatedCtxt)
 		return;
-
-	activatedCtxt->call_state = RIL_CALL_ACTIVE;
 	
-	if(activatedCtxt->token != 0)
-	{
-		ril_request_complete(activatedCtxt->token, RIL_E_SUCCESS, NULL, 0);
-		activatedCtxt->token = 0;
+	if(activatedCtxt->token != 0) {
+		if (activateCnf->cause == 0) {
+			ril_request_complete(activatedCtxt->token, RIL_E_SUCCESS, NULL, 0);
+			activatedCtxt->call_state = RIL_CALL_ACTIVE;
+		}
+		else
+			ril_request_complete(activatedCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
+	activatedCtxt->token = 0;
 	}
 }
 
