@@ -33,7 +33,7 @@ ril_call_context* find_active_call()
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF && 	ril_data.calls[i]->call_state == RIL_CALL_ACTIVE)
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF && 	ril_data.calls[i]->call_state == RIL_CALL_ACTIVE)
 		{
 			return ril_data.calls[i];
 		}
@@ -95,7 +95,7 @@ void ipc_call_incoming(void* data)
 	int i;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF && 	(ril_data.calls[i]->call_state == RIL_CALL_ACTIVE || ril_data.calls[i]->call_state == RIL_CALL_HOLDING))
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF && 	(ril_data.calls[i]->call_state == RIL_CALL_ACTIVE || ril_data.calls[i]->call_state == RIL_CALL_HOLDING))
 		{
 			newCallState = RIL_CALL_WAITING;
 			break;
@@ -147,7 +147,7 @@ void ipc_call_setup_ind(void* data)
 	ril_call_context* callCtxt;
 	uint32_t callId = *(uint32_t *)(data);
 	ALOGE("%s : Test me! callId = %d", __func__, callId);
-	callCtxt = find_ril_call_context(0xFFFFFFFF);
+	callCtxt = find_ril_call_context(0xFF);
 	if(!callCtxt)
 		return;
 	callCtxt->callId = callId;
@@ -322,7 +322,7 @@ void ipc_call_error(void* data)
 	ril_data.state.last_call_fail_cause = errorInd->error;
 
 	if(errorCtxt->token != 0)
-		ril_request_complete(errorCtxt->token, RIL_E_SUCCESS, NULL, 0);
+		ril_request_complete(errorCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
 	release_ril_call_context(errorCtxt);
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
@@ -334,7 +334,7 @@ void ril_request_dial(RIL_Token t, void *data, size_t datalen)
 	RIL_Dial *dial;
 	int clir;
 
-	if (find_ril_call_context(0xFFFFFFFF) != NULL || data == NULL || datalen < sizeof(RIL_Dial))
+	if (find_ril_call_context(0xFF) != NULL || data == NULL || datalen < sizeof(RIL_Dial))
 		goto error;
 
 	dial = (RIL_Dial *) data;
@@ -342,7 +342,7 @@ void ril_request_dial(RIL_Token t, void *data, size_t datalen)
 	if(!callCtxt)
 		goto error;
 	
-	callCtxt->callId = 0xFFFFFFFF;
+	callCtxt->callId = 0xFF;
 	callCtxt->call_state = RIL_CALL_DIALING;
 	callCtxt->bMT = 0;
 	strcpy(callCtxt->number, dial->address);
@@ -391,7 +391,7 @@ void ril_request_get_current_calls(RIL_Token t)
 	RIL_Call **calls = NULL;
 	j = 0;
 	for (i = 0; i < MAX_CALLS; i++) {
-		if(ril_data.calls[i] == NULL || ril_data.calls[i]->callId == 0xFFFFFFFF)
+		if(ril_data.calls[i] == NULL || ril_data.calls[i]->callId == 0xFF)
 			continue;
 		RIL_Call *call = (RIL_Call *) malloc(sizeof(RIL_Call));
 		call->state = ril_data.calls[i]->call_state;
@@ -452,7 +452,7 @@ void ril_request_hangup_waiting_or_background(RIL_Token t)
 	ril_call_context* incomingCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF)
 		{
 			if(ril_data.calls[i]->call_state == RIL_CALL_ACTIVE)
 			{
@@ -543,7 +543,7 @@ void ril_request_hangup_foreground_resume_background(RIL_Token t)
 	ril_call_context* holdCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF)
 		{
 			if(ril_data.calls[i]->call_state == RIL_CALL_ACTIVE)
 			{
@@ -600,7 +600,7 @@ void ril_request_answer(RIL_Token t)
 	
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF && ril_data.calls[i]->call_state == RIL_CALL_INCOMING)
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF && ril_data.calls[i]->call_state == RIL_CALL_INCOMING)
 		{
 			ALOGE("%s: answering callId = %d", __func__, ril_data.calls[i]->callId);
 			if (ril_data.calls[i]->token != 0)
@@ -707,7 +707,7 @@ void ril_request_switch_waiting_or_holding_and_active(RIL_Token t)
 	ril_call_context* waitCtxt = NULL;
 	for(i = 0; i < MAX_CALLS; i++)
 	{
-		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFFFFFFFF)
+		if(ril_data.calls[i] && ril_data.calls[i]->callId != 0xFF)
 		{
 			if(ril_data.calls[i]->call_state == RIL_CALL_ACTIVE)
 			{
