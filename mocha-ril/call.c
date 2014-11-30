@@ -274,17 +274,6 @@ void ipc_call_swap(void* data)
 		heldCtxt->token = 0;
 		activatedCtxt->token = 0;
 	}
-	else if(activatedCtxt->token != 0) {
-		if (swapCnf->cause == 0) {
-			ril_request_complete(activatedCtxt->token, RIL_E_SUCCESS, NULL, 0);
-			activatedCtxt->call_state = RIL_CALL_ACTIVE;
-			heldCtxt->call_state = RIL_CALL_HOLDING;
-		}
-		else
-			ril_request_complete(activatedCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
-		heldCtxt->token = 0;
-		activatedCtxt->token = 0;
-	}
 }
 
 void ipc_call_activate(void* data)
@@ -746,17 +735,16 @@ void ril_request_switch_waiting_or_holding_and_active(RIL_Token t)
 	{
 		ALOGE("%s: active/holding callId = %d", __func__, activeCtxt->callId);
 		ALOGE("%s: waiting/activating callId = %d", __func__, waitCtxt->callId);
-		tapi_call_hold(waitCtxt->callId);
-
+		tapi_call_hold(activeCtxt->callId);
 		usleep(500000);
-		activeCtxt->token = t;
-		tapi_calls_swap(activeCtxt->callId, waitCtxt->callId);
+		waitCtxt->token = t;
+		tapi_call_answer(waitCtxt->callType, waitCtxt->callId);
 	}
 	else if(holdCtxt && waitCtxt)
 	{
 		ALOGE("%s: hold/holding callId = %d", __func__, holdCtxt->callId);
 		ALOGE("%s: wait/activating callId = %d", __func__, waitCtxt->callId);
-		waitCtxt->token = 0;
+		waitCtxt->token = t;
 		tapi_call_answer(waitCtxt->callType, waitCtxt->callId);
 	}
 	else if(activeCtxt)
