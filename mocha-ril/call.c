@@ -239,12 +239,13 @@ void ipc_call_hold(void* data)
 	heldCtxt = find_ril_call_context(holdCnf->callId);
 	if(!heldCtxt)
 		return;
-	
+
+	if (holdCnf->cause == 0)
+		heldCtxt->call_state = RIL_CALL_HOLDING;
+
 	if(heldCtxt->token != 0) {
-		if (holdCnf->cause == 0) {
+		if (holdCnf->cause == 0)
 			ril_request_complete(heldCtxt->token, RIL_E_SUCCESS, NULL, 0);
-			heldCtxt->call_state = RIL_CALL_HOLDING;
-		}
 		else
 			ril_request_complete(heldCtxt->token, RIL_E_GENERIC_FAILURE, NULL, 0);
 		heldCtxt->token = 0;
