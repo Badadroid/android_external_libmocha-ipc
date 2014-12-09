@@ -267,9 +267,12 @@ void ipc_incoming_sms(void* data)
 
 	if (nettextInfo->TON_FromNumber == 5 ) {
 		len = ascii2gsm7(number_oa, (unsigned char **)&number_tmp);
-		number = data2string((unsigned char *)number_tmp, strlen(number_tmp));
+		number = data2string((unsigned char *)number_tmp, len);
 
-		sprintf(c, "%02x", strlen(number));
+		len = (strlen(number_oa) * 7 * 2) / 8;
+		len += (strlen(number_oa) * 7 * 2) % 8 > 0 ? 1 : 0;
+
+		sprintf(c, "%02x", len);
 		strcat(pdu, c);
 		strcat(pdu, "D0");
 		strcat(pdu, number);
