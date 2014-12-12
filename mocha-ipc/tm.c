@@ -68,7 +68,7 @@ void tm_send_packet(uint8_t group, uint8_t type, uint8_t *data, int32_t data_siz
 
 void tm_bat_info(struct tm_battery_info *bat_info)
 {
-	DEBUG_I("Battery info: \n ADC_val = %d raw_volt= %d\n raw_soc= %f%% adj_soc=%f%% max_soc=%f%%", bat_info->ADC_val, bat_info->raw_volt, bat_info->raw_soc,bat_info->adj_soc, bat_info->max_soc);
+	//DEBUG_I("Battery info: \n ADC_val = %d raw_volt= %d\n raw_soc= %f%% adj_soc=%f%% max_soc=%f%%", bat_info->ADC_val, bat_info->raw_volt, bat_info->raw_soc,bat_info->adj_soc, bat_info->max_soc);
 	char buf[20];
 	int32_t len;
 
