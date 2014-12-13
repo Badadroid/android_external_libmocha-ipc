@@ -60,19 +60,19 @@ void ipc_parse_tapi(struct ipc_client* client, struct modem_io *ipc_frame)
     switch (rx_header->tapiService)
     {
 	case TAPI_TYPE_CALL:
-		DEBUG_I("Tapi call/general packet received");
+		//DEBUG_I("Tapi call/general packet received");
 		tapi_call_parser(rx_header->tapiServiceFunction, rx_header->len, (ipc_frame->data + sizeof(struct tapiPacketHeader)));
 		break;
 	case TAPI_TYPE_NETTEXT:
-		DEBUG_I("Tapi nettext packet received");
+		//DEBUG_I("Tapi nettext packet received");
 		tapi_nettext_parser(rx_header->tapiServiceFunction, rx_header->len, (ipc_frame->data + sizeof(struct tapiPacketHeader)));
 		break;
 	case TAPI_TYPE_NETWORK:
-		DEBUG_I("Tapi network packet received");
+		//DEBUG_I("Tapi network packet received");
 		tapi_network_parser(rx_header->tapiServiceFunction, rx_header->len, (ipc_frame->data + sizeof(struct tapiPacketHeader)));
 		break;
 	case TAPI_TYPE_SS:
-		DEBUG_I("Tapi SS packet received");
+		//DEBUG_I("Tapi SS packet received");
 		tapi_ss_parser(rx_header->tapiServiceFunction, rx_header->len, (ipc_frame->data + sizeof(struct tapiPacketHeader)));
 		break;
 	case TAPI_TYPE_AT:

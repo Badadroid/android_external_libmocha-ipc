@@ -447,11 +447,11 @@ void *srs_client_read_loop(void *data)
 			RIL_CLIENT_UNLOCK(client_data->client);
 
 			ALOGD("RECV SRS: fd=%d command=%d length=%d", fd, message.command, message.length);
-			if (message.data != NULL && message.length > 0) {
+			/*if (message.data != NULL && message.length > 0) {
 				ALOGD("==== SRS DATA DUMP ====");
 				hex_dump(message.data, message.length);
 				ALOGD("=======================");
-			}
+			}*/
 
 			srs_dispatch(client, &message);
 

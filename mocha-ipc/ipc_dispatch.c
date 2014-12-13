@@ -111,6 +111,11 @@ void ipc_dispatch(struct ipc_client *client, struct modem_io *ipc_frame)
 		case FIFO_PKT_LBS:
 			ipc_parse_lbs(client, ipc_frame);
 			break;
+		case 0x99:
+		case 0x9A:
+		case 0x9E:
+			//unused packets
+			break;
 		default :
 			DEBUG_I("Packet type 0x%x not yet handled\n", ipc_frame->cmd);
 			DEBUG_I("Frame header = 0x%x\n Frame type = 0x%x\n Frame length = 0x%x\n",
