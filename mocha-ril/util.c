@@ -115,24 +115,21 @@ size_t gsm72ascii(unsigned char *gsm7, char **ascii, size_t size)
 /**
  * Converts ASCII (7 bits) data to GSM7 (8 bits)
  */
-size_t ascii2gsm7(char *ascii, unsigned char **gsm7)
+size_t ascii2gsm7(char *ascii, unsigned char **gsm7, size_t size)
 {
 	int d_off, d_pos, a_off, a_pos = 0;
-	int i;
+	size_t i;
 
-	int ascii_length;
 	int gsm7_length;
 	unsigned char *enc;
 
-	ascii_length = strlen(ascii);
-
-	gsm7_length = ((ascii_length * 7) - (ascii_length * 7) % 8) / 8;
-	gsm7_length += (ascii_length * 7) % 8 > 0 ? 1 : 0;
+	gsm7_length = ((size * 7) - (size * 7) % 8) / 8;
+	gsm7_length += (size * 7) % 8 > 0 ? 1 : 0;
 
 	enc = malloc(gsm7_length);
 	memset(enc, 0, gsm7_length);
 
-	for (i = 0 ; i < ascii_length ; i++)
+	for (i = 0 ; i < size ; i++)
 	{
 		// offset from the right of data to keep
 		d_off = i % 8;

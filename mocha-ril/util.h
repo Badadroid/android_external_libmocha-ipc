@@ -32,7 +32,7 @@ struct list_head *list_head_alloc(void *data, struct list_head *prev, struct lis
 void list_head_free(struct list_head *list);
 
 size_t gsm72ascii(unsigned char *gsm7, char **ascii, size_t size);
-size_t ascii2gsm7(char *ascii, unsigned char **gsm7);
+size_t ascii2gsm7(char *ascii, unsigned char **gsm7, size_t size);
 void hex_dump(void *data, int size);
 int utf8_write(char *utf8, int offset, int v);
 

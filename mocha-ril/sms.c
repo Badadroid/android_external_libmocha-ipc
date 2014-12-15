@@ -266,7 +266,7 @@ void ipc_incoming_sms(void* data)
 	number_oa = nettextInfo->szFromNumber;
 
 	if (nettextInfo->TON_FromNumber == 5 ) {
-		len = ascii2gsm7(number_oa, (unsigned char **)&number_tmp);
+		len = ascii2gsm7(number_oa, (unsigned char **)&number_tmp, strlen(number_oa));
 		number = data2string((unsigned char *)number_tmp, len);
 
 		len = (strlen(number_oa) * 7 * 2) / 8;
@@ -398,7 +398,7 @@ void ipc_incoming_sms(void* data)
 			message_length += 2;
 			strcat(message, "0000000");
 			strncat(message, (char *)(nettextInfo->messageBody + 5), message_length);
-			len = ascii2gsm7(message, (unsigned char **)&message_tmp);
+			len = ascii2gsm7(message, (unsigned char **)&message_tmp, message_length);
 			message_tmp[0] = 0x05;
 			i = 0;
 			while (i < 5) {
@@ -407,7 +407,7 @@ void ipc_incoming_sms(void* data)
 			}
 			tp_ud = data2string((unsigned char *)message_tmp, len);
 		} else {
-			len = ascii2gsm7((char *)nettextInfo->messageBody, (unsigned char **)&message_tmp);
+			len = ascii2gsm7((char *)nettextInfo->messageBody, (unsigned char **)&message_tmp, message_length);
 			tp_ud = data2string((unsigned char *)message_tmp, len);
 		}
 	}
