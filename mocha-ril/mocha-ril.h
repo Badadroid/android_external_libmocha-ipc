@@ -249,6 +249,7 @@ struct ril_data {
 	struct ril_state state;
 	struct ril_tokens tokens;
 	ril_config config;
+	struct list_head *outgoing_sms;
 	struct list_head *gprs_connections;
 	struct list_head *net_select_list;
 	struct list_head *requests;
@@ -387,9 +388,21 @@ void ril_request_sim_io_complete(RIL_Token t, int command, int fileid,
 void ril_request_sim_io(RIL_Token t, void *data, size_t size);
 
 /* SMS */
+struct ril_request_send_sms_info {
+	unsigned char *pdu;
+	size_t pdu_size;
+	unsigned char *smsc;
+	size_t smsc_size;
+	RIL_Token token;
+};
 void ipc_sms_send_status(void* data);
-void ipc_incoming_sms(void* data);
+int ril_request_send_sms_register(unsigned char *pdu, size_t pdu_size, unsigned char *smsc, size_t smsc_size, RIL_Token t);
+void ril_request_send_sms_unregister(struct ril_request_send_sms_info *send_sms);
+struct ril_request_send_sms_info *ril_request_send_sms_info_find(void);
+void ril_request_send_sms_next(void);
+void ril_request_send_sms_complete(RIL_Token t, unsigned char *pdu, size_t pdu_size, unsigned char *smsc, size_t smsc_size);
 void ril_request_send_sms(RIL_Token t, void *data, size_t length);
+void ipc_incoming_sms(void* data);
 void ril_request_send_sms_expect_more(RIL_Token t, void *data, size_t length);
 void nettext_cb_setup(void);
 

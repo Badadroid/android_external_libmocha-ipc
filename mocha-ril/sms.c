@@ -42,55 +42,146 @@ void ipc_sms_send_status(void* data)
 			DEBUG_I("%s : Message sent  ", __func__);
 			response.errorCode = -1;
 			ril_request_complete(ril_data.tokens.outgoing_sms, RIL_E_SUCCESS, &response, sizeof(response));
-			return;
+			break;
 
 		default:
 			DEBUG_I("%s : Message sending error  ", __func__);
 			response.errorCode = 500;
 			ril_request_complete(ril_data.tokens.outgoing_sms, RIL_E_GENERIC_FAILURE, &response, sizeof(response));
-			return;
+			break;
 	}
+
+	// Send the next SMS in the list
+	ril_request_send_sms_next();
 }
 
-/**
+/*
  * Outgoing SMS functions
  */
 
-void ril_request_send_sms(RIL_Token t, void *data, size_t size)
+int ril_request_send_sms_register(unsigned char *pdu, size_t pdu_size, unsigned char *smsc, size_t smsc_size, RIL_Token t)
+{
+	struct ril_request_send_sms_info *send_sms;
+	struct list_head *list_end;
+	struct list_head *list;
+
+	send_sms = calloc(1, sizeof(struct ril_request_send_sms_info));
+	if (send_sms == NULL)
+		return -1;
+
+	send_sms->pdu = pdu;
+	send_sms->pdu_size = pdu_size;
+	send_sms->smsc = smsc;
+	send_sms->smsc_size = smsc_size;
+	send_sms->token = t;
+
+	list_end = ril_data.outgoing_sms;
+	while (list_end != NULL && list_end->next != NULL)
+		list_end = list_end->next;
+
+	list = list_head_alloc((void *) send_sms, list_end, NULL);
+
+	if (ril_data.outgoing_sms == NULL)
+		ril_data.outgoing_sms = list;
+
+	return 0;
+}
+
+void ril_request_send_sms_unregister(struct ril_request_send_sms_info *send_sms)
+{
+	struct list_head *list;
+
+	if (send_sms == NULL)
+		return;
+
+	list = ril_data.outgoing_sms;
+	while (list != NULL) {
+		if (list->data == (void *) send_sms) {
+			memset(send_sms, 0, sizeof(struct ril_request_send_sms_info));
+			free(send_sms);
+
+			if (list == ril_data.outgoing_sms)
+				ril_data.outgoing_sms = list->next;
+
+			list_head_free(list);
+
+			break;
+		}
+list_continue:
+		list = list->next;
+	}
+}
+
+struct ril_request_send_sms_info *ril_request_send_sms_info_find(void)
+{
+	struct ril_request_send_sms_info *send_sms;
+	struct list_head *list;
+
+	list = ril_data.outgoing_sms;
+	while (list != NULL) {
+		send_sms = (struct ril_request_send_sms_info *) list->data;
+		if (send_sms == NULL)
+			goto list_continue;
+
+		return send_sms;
+
+list_continue:
+		list = list->next;
+	}
+
+	return NULL;
+}
+
+void ril_request_send_sms_next(void)
+{
+	struct ril_request_send_sms_info *send_sms;
+	RIL_Token t;
+	unsigned char *pdu;
+	unsigned char *smsc;
+	size_t pdu_size;
+	size_t smsc_size;
+
+	ril_data.tokens.outgoing_sms = RIL_TOKEN_NULL;
+
+	send_sms = ril_request_send_sms_info_find();
+	if (send_sms == NULL)
+		return;
+
+	t = send_sms->token;
+	pdu = send_sms->pdu;
+	pdu_size = send_sms->pdu_size;
+	smsc = send_sms->smsc;
+	smsc_size = send_sms->smsc_size;
+
+	ril_request_send_sms_unregister(send_sms);
+
+	if (pdu == NULL) {
+		ALOGE("SMS send request has no valid PDU");
+		if (smsc != NULL)
+			free(smsc);
+		return;
+	}
+
+	ril_data.tokens.outgoing_sms = t;
+	ril_request_send_sms_complete(t, pdu, pdu_size, smsc, smsc_size);
+	if (pdu != NULL && pdu_size > 0)
+		free(pdu);
+	if (smsc != NULL && smsc_size > 0)
+		free(smsc);
+}
+
+void ril_request_send_sms_complete(RIL_Token t, unsigned char *pdu, size_t pdu_size, unsigned char *smsc, size_t smsc_size)
 {
 	tapiNettextInfo* mess;
-	char **values = NULL;
-	unsigned char *smsc = NULL;
-	unsigned char *pdu = NULL;
-	size_t pdu_size;
 	char *message = NULL;
 	int pdu_type, pdu_tp_da_index, pdu_tp_da_len, pdu_tp_udl_index, pdu_tp_ud_len, pdu_tp_ud_index, send_msg_type;
 
-	if (data == NULL || size < 2 * sizeof(char *))
+	if (pdu == NULL || pdu_size <= 0 || smsc == NULL || smsc_size <= 0)
 		goto error;
 
-	values = (char **) data;
-	if (values[1] == NULL)
+	if ((pdu_size / 2 + smsc_size) > 0xfe) {
+		ALOGE("PDU or SMSC too large, aborting");
 		goto error;
-
-	ALOGD("%s: PDU: %s", __func__, values[1]);
-
-	pdu_size = string2data_size(values[1]);
-	if (pdu_size == 0)
-		goto error;
-
-	pdu = string2data(values[1]);
-	if (pdu == NULL)
-		goto error;
-
-	if (values[0] != NULL) {
-		smsc = string2data(values[0]);
-		if (smsc == NULL)
-			goto error;
-	} else {
-		smsc = string2data(ril_data.smsc_number);
-		if (smsc == NULL)
-			goto error;
 	}
 
 	/* PDU parsing */
@@ -177,22 +268,100 @@ void ril_request_send_sms(RIL_Token t, void *data, size_t size)
 			memcpy(mess->messageBody + 5, message + 7, pdu_tp_ud_len - 7);
 		}
 	}
+
 	tapi_nettext_set_net_burst(0);
 	tapi_nettext_send((uint8_t *)mess);
-	ril_data.tokens.outgoing_sms = t;
 
-	free(mess);
-	free(pdu);
-	free(smsc);
-
-	if(message != NULL)
+	if (mess != NULL)
+		free(mess);
+	if (message != NULL)
 		free(message);
 
 	return;
 
 error:
-
 	ril_request_complete(t, RIL_E_SMS_SEND_FAIL_RETRY, NULL, 0);
+	if (pdu != NULL && pdu_size > 0)
+		free(pdu);
+	if (smsc != NULL && smsc_size > 0)
+		free(smsc);
+	// Send the next SMS in the list
+	ril_request_send_sms_next();
+}
+
+void ril_request_send_sms(RIL_Token t, void *data, size_t size)
+{
+	char **values = NULL;
+	unsigned char *smsc = NULL;
+	unsigned char *pdu = NULL;
+	size_t pdu_size;
+	size_t smsc_size;
+	int rc;
+
+	if (data == NULL || size < 2 * sizeof(char *))
+		goto error;
+
+	values = (char **) data;
+	if (values[1] == NULL)
+		goto error;
+
+	ALOGD("%s: PDU: %s", __func__, values[1]);
+
+	pdu_size = string2data_size(values[1]);
+	if (pdu_size == 0)
+		goto error;
+
+	pdu = string2data(values[1]);
+	if (pdu == NULL)
+		goto error;
+
+	if (values[0] != NULL) {
+		smsc = string2data(values[0]);
+		if (smsc == NULL)
+			goto error;
+
+		smsc_size = string2data_size(values[0]);
+		if (smsc_size == 0)
+			goto error;
+	} else {
+		smsc = string2data(ril_data.smsc_number);
+		if (smsc == NULL)
+			goto error;
+
+		smsc_size = string2data_size(ril_data.smsc_number);
+		if (smsc_size == 0)
+			goto error;
+	}
+
+	if (ril_data.tokens.outgoing_sms != RIL_TOKEN_NULL) {
+		ALOGD("%s: Another outgoing SMS is being processed, adding to the list", __func__);
+		rc = ril_request_send_sms_register(pdu, pdu_size, smsc, smsc_size, t);
+		if (rc < 0) {
+			ALOGE("%s: Unable to add the request to the list", __func__);
+			goto error;
+		}
+		return;
+	}
+
+	ril_data.tokens.outgoing_sms = t;
+	ril_request_send_sms_complete(t, pdu, pdu_size, smsc, smsc_size);
+	if (pdu != NULL && pdu_size > 0)
+		free(pdu);
+	if (smsc != NULL && smsc_size > 0)
+		free(smsc);
+
+	return;
+
+error:
+	ril_request_complete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+
+	if (pdu != NULL && pdu_size > 0)
+		free(pdu);
+	if (smsc != NULL && smsc_size > 0)
+		free(smsc);
+
+	// Send the next SMS in the list
+	ril_request_send_sms_next();
 }
 
 void ipc_incoming_sms(void* data)
@@ -460,5 +629,3 @@ void nettext_cb_setup(void)
 		cb_sett_buf.cb_info[i] = 0x0;
 	tapi_nettext_set_cb_settings(&cb_sett_buf);
 }
-
-
