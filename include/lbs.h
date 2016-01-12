@@ -106,7 +106,7 @@ typedef struct {
 	float h_accuracy;
 	float v_accuracy;
 	double altitude;
-	double trueCourse;
+	double heading;
 	double speed;
 	uint8_t unknown1[8];
 	uint32_t years;

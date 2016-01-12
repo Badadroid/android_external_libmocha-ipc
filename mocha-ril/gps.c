@@ -33,6 +33,7 @@ void ipc_lbs_get_position_ind(void* data)
 	lbsGetPositionInd* get_pos = (lbsGetPositionInd*)(data);
 	ALOGD("%s: latitude = %f, longitude = %f", __func__, get_pos->latitude, get_pos->longitude);
 	ALOGD("%s: altitude = %f, speed = %f, timestamp = %d", __func__, get_pos->altitude, get_pos->speed, get_pos->timestamp);
+	ALOGD("%s: heading = %f", __func__, get_pos->heading);
 	ALOGD("%s: lbsPositionDataType = %d, numOfSatInView = %d, numOfSatToFix = %d", __func__, get_pos->lbsPositionDataType, get_pos->numOfSatInView, get_pos->numOfSatToFix);
 	ALOGD("%s: h_accuracy = %f, v_accuracy = %f", __func__, get_pos->h_accuracy, get_pos->v_accuracy);
 	ALOGD("%s: PDOP = %d, HDOP = %d, VDOP = %d", __func__, get_pos->pdop, get_pos->hdop, get_pos->vdop);
@@ -80,6 +81,9 @@ void ipc_lbs_get_position_ind(void* data)
 
 		location.flags |= GPS_LOCATION_HAS_SPEED;
 		location.speed = get_pos->speed / 3.6f; // convert kp/h to m/s
+
+		location.flags |= GPS_LOCATION_HAS_BEARING;
+		location.bearing = get_pos->heading;
 
 		location.flags |= GPS_LOCATION_HAS_ACCURACY;
 		location.accuracy = get_pos->h_accuracy;
