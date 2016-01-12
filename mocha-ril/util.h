@@ -46,4 +46,6 @@ char *data2string(const void *data, size_t size);
 size_t string2data_size(const char *string);
 void *string2data(const char *string);
 
+int nmea_put_checksum(char *pNmea, int maxSize);
+
 #endif

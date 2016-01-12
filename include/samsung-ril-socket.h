@@ -23,6 +23,8 @@
 #ifndef _SAMSUNG_RIL_SOCKET_H_
 #define _SAMSUNG_RIL_SOCKET_H_
 
+#include <hardware/gps.h>
+
 #define SRS_COMMAND(f)  ((f->group << 8) | f->index)
 #define SRS_GROUP(m)    (m >> 8)
 #define SRS_INDEX(m)    (m & 0xff)
@@ -44,9 +46,12 @@
 #define SRS_GPS_SV_STATUS		0x0302
 #define SRS_GPS_LOCATION		0x0303
 #define SRS_GPS_STATE			0x0304
+#define SRS_GPS_NMEA			0x0305
 #define SRS_GPS_HELLO			0x03FF
 
 #define SRS_CONTROL_CAFFE		0xCAFFE
+
+#define NMEA_SENTENCE_MAX_LENGTH 200
 
 struct srs_header {
 	unsigned int length;
@@ -114,5 +119,11 @@ struct srs_snd_enable_disable_packet {
 struct srs_control_ping {
 	int caffe;
 } __attribute__((__packed__));
+
+typedef struct {
+	GpsUtcTime timestamp;
+	char nmea[NMEA_SENTENCE_MAX_LENGTH];
+	int length;
+} GpsNmea;
 
 #endif

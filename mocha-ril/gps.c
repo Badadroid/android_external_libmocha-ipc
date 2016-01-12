@@ -89,6 +89,73 @@ void ipc_lbs_get_position_ind(void* data)
 		location.accuracy = get_pos->h_accuracy;
 
 		srs_send(find_srs_gps_client(), SRS_GPS_LOCATION, &location, sizeof(GpsLocation));
+
+		// ------------------
+		// ------$GPGSA------
+		// ------------------
+
+
+		GpsNmea nmea;
+		char* pMarker = nmea.nmea;
+		int lengthRemaining = sizeof(nmea.nmea);
+		int length = 0;
+		char fixType;
+
+		if (get_pos->altitude == 0)
+			fixType = '2'; // 2D fix
+		else
+			fixType = '3'; // 3D fix
+
+		length = snprintf(pMarker, lengthRemaining, "$GPGSA,A,%c,", fixType);
+
+		if (length < 0 || length >= lengthRemaining)
+		{
+			ALOGE("NMEA Error in string formatting");
+			return;
+		}
+
+		pMarker += length;
+		lengthRemaining -= length;
+
+		for (i = 0; i < 12; i++) // only the first 12 sv go in sentence
+		{
+			if (i < get_pos->numOfSatToFix)
+				length = snprintf(pMarker, lengthRemaining, "%02d,", get_pos->satIdtoFix[i]);
+			else
+				length = snprintf(pMarker, lengthRemaining, ",");
+
+			if (length < 0 || length >= lengthRemaining)
+			{
+				ALOGE("NMEA Error in string formatting");
+				return;
+			}
+			pMarker += length;
+			lengthRemaining -= length;
+		}
+
+		if (get_pos->pdop > 0 && get_pos->hdop > 0 && get_pos->vdop > 0)
+		{   // dop was cached from sv report (RPC)
+			length = snprintf(pMarker, lengthRemaining, "%.1f,%.1f,%.1f",
+								(float)get_pos->pdop * 0.1,
+								(float)get_pos->hdop * 0.1,
+								(float)get_pos->vdop * 0.1);
+		}
+		else
+		{   // no dop
+			length = snprintf(pMarker, lengthRemaining, ",,");
+		}
+
+		length = nmea_put_checksum(nmea.nmea, sizeof(nmea.nmea));
+
+		nmea.timestamp = get_pos->timestamp;
+		// convert gps time to epoch time ms
+		nmea.timestamp += 315964800; // 1/1/1970 to 1/6/1980
+		nmea.timestamp *= 1000; //ms
+
+		nmea.length = length;
+		ALOGD("NMEA string = %s", nmea.nmea);
+
+		srs_send(find_srs_gps_client(), SRS_GPS_NMEA, &nmea, sizeof(nmea));
 	}
 }
 

@@ -448,3 +448,19 @@ void *string2data(const char *string)
 
 	return data;
 }
+
+int nmea_put_checksum(char *pNmea, int maxSize)
+{
+	uint8_t checksum = 0;
+	int length = 0;
+
+	pNmea++; //skip the $
+	while (*pNmea != '\0')
+	{
+		checksum ^= *pNmea++;
+		length++;
+	}
+
+	int checksumLength = snprintf(pNmea,(maxSize-length-1),"*%02X\r\n", checksum);
+	return (length + checksumLength);
+}
