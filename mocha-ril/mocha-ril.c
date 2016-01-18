@@ -308,6 +308,9 @@ void srs_dispatch(struct srs_client_info *client, struct srs_message *message)
 		case SRS_GPS_NAVIGATION_MODE:
 			srs_gps_navigation_mode(message);
 			break;
+		case SRS_GPS_XTRA_INJECT_DATA:
+			srs_gps_xtra_inject_data(message);
+			break;
 		default:
 			ALOGD("Unhandled command: (%04x)", message->command);
 			break;

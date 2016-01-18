@@ -425,5 +425,6 @@ void ipc_lbs_state_ind(void* data);
 void srs_gps_init(struct srs_message *message);
 void srs_gps_navigation_mode(struct srs_message *message);
 struct srs_client_info *find_srs_gps_client(void);
+void srs_gps_xtra_inject_data(struct srs_message *message);
 
 #endif

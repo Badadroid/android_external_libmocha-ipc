@@ -22,6 +22,8 @@
 #define LOG_TAG "RIL-Mocha-GPS"
 #include <time.h>
 #include <utils/Log.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "mocha-ril.h"
 #include "util.h"
@@ -221,6 +223,39 @@ void srs_gps_navigation_mode(struct srs_message *message)
 		ALOGD("%s GPS navigation disabled", __func__);
 		lbs_send_packet(LBS_PKT_CANCEL_POSITION, 0, 1, 0);
 	}
+}
+
+void srs_gps_xtra_inject_data(struct srs_message *message)
+{
+	struct srs_xtra_data_length *data = (struct srs_xtra_data_length *) message->data;
+	ALOGD("%s: xtra size = %d", __func__, data->length);
+	int fd, n, len;
+	void *buf;
+
+	len = data->length;
+
+	if( (fd = open(RIL_XTRA_PATH, O_RDONLY)) < 0 ) {
+		ALOGE("%s: Couldn't open %s for reading, errno: %d", __func__, RIL_XTRA_PATH, errno);
+		return;
+	}
+
+	buf = calloc(1,0xA008);
+	memcpy((char *)buf, &len, 4);
+
+	n = read(fd, (char *)buf + 8, len);
+	if(n != len) {
+		ALOGE("%s: Read only %d of %d bytes from %s", __func__, n, len, RIL_XTRA_PATH);
+		close(fd);
+		free(buf);
+		return;
+	} else {
+	ALOGD("%s: Read %d bytes from %s", __func__, n, RIL_XTRA_PATH);
+	close(fd);
+	}
+
+	lbs_send_packet(LBS_PKT_XTRA_INJECT_DATA, 0xA008, 1, buf);
+
+	free(buf);
 }
 
 struct srs_client_info *find_srs_gps_client(void)

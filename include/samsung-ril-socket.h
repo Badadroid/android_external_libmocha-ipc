@@ -48,11 +48,14 @@
 #define SRS_GPS_LOCATION		0x0304
 #define SRS_GPS_STATE			0x0305
 #define SRS_GPS_NMEA			0x0306
+#define SRS_GPS_XTRA_INJECT_DATA	0x0307
 #define SRS_GPS_HELLO			0x03FF
 
 #define SRS_CONTROL_CAFFE		0xCAFFE
 
 #define NMEA_SENTENCE_MAX_LENGTH 200
+
+#define RIL_XTRA_PATH "/data/radio/ril_xtra.bin"
 
 struct srs_header {
 	unsigned int length;
@@ -119,6 +122,10 @@ struct srs_enable_disable_packet {
 
 struct srs_control_ping {
 	int caffe;
+} __attribute__((__packed__));
+
+struct srs_xtra_data_length {
+	uint32_t length;
 } __attribute__((__packed__));
 
 typedef struct {
