@@ -302,6 +302,9 @@ void srs_dispatch(struct srs_client_info *client, struct srs_message *message)
 		case SRS_SND_PCM_IF_CTRL:
 			srs_snd_pcm_if_ctrl(message);
 			break;
+		case SRS_GPS_INIT:
+			srs_gps_init(message);
+			break;
 		case SRS_GPS_NAVIGATION_MODE:
 			srs_gps_navigation_mode(message);
 			break;

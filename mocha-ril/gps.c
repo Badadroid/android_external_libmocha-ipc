@@ -181,9 +181,25 @@ void ipc_lbs_state_ind(void* data)
 	srs_send(find_srs_gps_client(), SRS_GPS_STATE, &value, sizeof(GpsStatusValue));
 }
 
+void srs_gps_init(struct srs_message *message)
+{
+	struct srs_enable_disable_packet *data = (struct srs_enable_disable_packet *) message->data;
+
+	if (data->enabled == 1)
+	{
+		ALOGD("%s GPS init", __func__);
+		lbs_send_init(1);
+	}
+	else
+	{
+		ALOGD("%s GPS cleanup", __func__);
+		lbs_send_init(0);
+	}
+}
+
 void srs_gps_navigation_mode(struct srs_message *message)
 {
-	struct srs_snd_enable_disable_packet *data = (struct srs_snd_enable_disable_packet *) message->data;
+	struct srs_enable_disable_packet *data = (struct srs_enable_disable_packet *) message->data;
 
 	if (data->enabled == 1)
 	{

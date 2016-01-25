@@ -54,14 +54,14 @@ void srs_snd_set_audio_path(struct srs_message *message)
 
 void srs_snd_1mic_ns_ctrl(struct srs_message *message)
 {
-	struct srs_snd_enable_disable_packet *en_dis_data = (struct srs_snd_enable_disable_packet *) message->data;
+	struct srs_enable_disable_packet *en_dis_data = (struct srs_enable_disable_packet *) message->data;
 	ALOGD("%s - enabled: %d \n", __func__, en_dis_data->enabled);
 	sound_send_1mic_ns_ctrl(en_dis_data->enabled);
 }
 
 void srs_snd_pcm_if_ctrl(struct srs_message *message)
 {
-	struct srs_snd_enable_disable_packet *en_dis_data = (struct srs_snd_enable_disable_packet *) message->data;
+	struct srs_enable_disable_packet *en_dis_data = (struct srs_enable_disable_packet *) message->data;
 	ALOGD("%s - enabled: %d \n", __func__, en_dis_data->enabled);
 	sound_send_pcm_if_ctrl(en_dis_data->enabled);
 }

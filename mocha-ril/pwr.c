@@ -24,7 +24,6 @@
 #include <time.h>
 #include <utils/Log.h>
 
-#include <lbs.h>
 #include <tapi.h>
 #include <sim.h>
 #include <proto.h>
@@ -58,7 +57,6 @@ void ipc_cp_system_start(void* data)
 
 	tapi_init();
 	proto_startup();
-	lbs_send_init(1);
 	ril_sim_init();
 
 	ril_request_unsolicited(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);

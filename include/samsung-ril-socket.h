@@ -42,11 +42,12 @@
 #define SRS_SND_PCM_IF_CTRL		0x0204
 
 #define SRS_GPS 			0x03
-#define SRS_GPS_NAVIGATION_MODE 	0x0301
-#define SRS_GPS_SV_STATUS		0x0302
-#define SRS_GPS_LOCATION		0x0303
-#define SRS_GPS_STATE			0x0304
-#define SRS_GPS_NMEA			0x0305
+#define SRS_GPS_INIT	 		0x0301
+#define SRS_GPS_NAVIGATION_MODE 	0x0302
+#define SRS_GPS_SV_STATUS		0x0303
+#define SRS_GPS_LOCATION		0x0304
+#define SRS_GPS_STATE			0x0305
+#define SRS_GPS_NMEA			0x0306
 #define SRS_GPS_HELLO			0x03FF
 
 #define SRS_CONTROL_CAFFE		0xCAFFE
@@ -112,7 +113,7 @@ struct srs_snd_set_path_packet {
 	uint16_t soundType;
 } __attribute__((__packed__));
 
-struct srs_snd_enable_disable_packet {
+struct srs_enable_disable_packet {
 	uint8_t enabled;
 } __attribute__((__packed__));
 
