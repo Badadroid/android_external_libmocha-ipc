@@ -34,6 +34,7 @@ typedef void (*srs_client_thread_cb)(struct srs_message *message);
 
 struct srs_client {
 	int fd;
+	int type;
 
 	pthread_mutex_t mutex;
 	pthread_t thread;
