@@ -49,6 +49,7 @@
 #define SRS_GPS_STATE			0x0305
 #define SRS_GPS_NMEA			0x0306
 #define SRS_GPS_XTRA_INJECT_DATA	0x0307
+#define SRS_GPS_XTRA_INJECT_TIME	0x0308
 #define SRS_GPS_HELLO			0x03FF
 
 #define SRS_CONTROL_CAFFE		0xCAFFE
@@ -126,6 +127,12 @@ struct srs_control_ping {
 
 struct srs_xtra_data_length {
 	uint32_t length;
+} __attribute__((__packed__));
+
+struct srs_xtra_time {
+	uint64_t time;
+	uint64_t timeReference;
+	uint32_t uncertainty;
 } __attribute__((__packed__));
 
 typedef struct {

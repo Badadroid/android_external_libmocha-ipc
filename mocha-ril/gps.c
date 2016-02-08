@@ -258,6 +258,15 @@ void srs_gps_xtra_inject_data(struct srs_message *message)
 	free(buf);
 }
 
+void srs_gps_xtra_inject_time(struct srs_message *message)
+{
+	struct srs_xtra_time *data = (struct srs_xtra_time *) message->data;
+	ALOGD("%s: time=%lld, timeReference=%lld, uncertainty=%d", __func__, data->time, data->timeReference, data->uncertainty);
+
+	//FIXME: Add correct structure
+
+	//lbs_send_packet(LBS_PKT_XTRA_INJECT_TIME_INFO, 0x30, 1, buf);
+}
 struct srs_client_info *find_srs_gps_client(void)
 {
 	struct srs_client_data *client_data;
