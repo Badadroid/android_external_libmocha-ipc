@@ -128,5 +128,6 @@ void lbs_send_init(uint32_t var)
 
 void lbs_delete_gps_data(void)
 {
+	ALOGD("%s sent", __func__);
 	lbs_send_packet(LBS_PKT_DELETE_GPS_DATA, 0, 1, 0);
 }
