@@ -265,7 +265,8 @@ void srs_gps_xtra_inject_time(struct srs_message *message)
 
 	//FIXME: Add correct structure
 
-	//lbs_send_packet(LBS_PKT_XTRA_INJECT_TIME_INFO, 0x30, 1, buf);
+	lbs_send_packet(LBS_PKT_XTRA_INJECT_TIME_INFO, 0x30, 1, (void *)data);
+
 }
 struct srs_client_info *find_srs_gps_client(void)
 {
